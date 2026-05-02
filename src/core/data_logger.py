@@ -125,6 +125,7 @@ class DataLogger:
         # Define columns
         fieldnames = [
             'timestamp',
+            'station',
             'azimuth_deg',
             'elevation_deg',
             'range_km',
