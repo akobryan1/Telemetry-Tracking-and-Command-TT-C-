@@ -1,0 +1,75 @@
+{
+  "skill_name": "design-decomposition",
+  "iteration": 1,
+  "configurations": [
+    {
+      "name": "with_skill",
+      "description": "Using design-decomposition skill",
+      "pass_rate": {
+        "mean": 0.944,
+        "std_dev": 0.08,
+        "values": [1.0, 1.0, 0.833]
+      },
+      "eval_results": [
+        {
+          "eval_id": 1,
+          "eval_name": "ground-station-multi-satellite",
+          "passed": 6,
+          "total": 6,
+          "pass_rate": 1.0
+        },
+        {
+          "eval_id": 2,
+          "eval_name": "satellite-subsystems-coupling",
+          "passed": 6,
+          "total": 6,
+          "pass_rate": 1.0
+        },
+        {
+          "eval_id": 3,
+          "eval_name": "command-system-basic",
+          "passed": 5,
+          "total": 6,
+          "pass_rate": 0.833
+        }
+      ]
+    },
+    {
+      "name": "without_skill",
+      "description": "Baseline without skill",
+      "pass_rate": {
+        "mean": 0.833,
+        "std_dev": 0.0,
+        "values": [0.833, 0.833, 0.833]
+      },
+      "eval_results": [
+        {
+          "eval_id": 1,
+          "eval_name": "ground-station-multi-satellite",
+          "passed": 5,
+          "total": 6,
+          "pass_rate": 0.833
+        },
+        {
+          "eval_id": 2,
+          "eval_name": "satellite-subsystems-coupling",
+          "passed": 5,
+          "total": 6,
+          "pass_rate": 0.833
+        },
+        {
+          "eval_id": 3,
+          "eval_name": "command-system-basic",
+          "passed": 5,
+          "total": 6,
+          "pass_rate": 0.833
+        }
+      ]
+    }
+  ],
+  "delta": {
+    "pass_rate": 0.111,
+    "interpretation": "Skill improves pass rate by 11.1 percentage points (94.4% vs 83.3%)"
+  },
+  "summary": "The design-decomposition skill shows consistent improvement over baseline, particularly in complex multi-subsystem scenarios (evals 1 and 2). The skill achieves perfect scores on the ground station and satellite subsystems evaluations, demonstrating stronger adherence to systematic decomposition methodology, explicit interface definitions, and incremental implementation strategies."
+}

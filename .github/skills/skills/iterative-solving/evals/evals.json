@@ -1,0 +1,25 @@
+[
+  {
+    "name": "ground-station-incremental",
+    "prompt": "I want to build a ground station simulator that predicts satellite passes, computes link budgets, calculates Doppler, and simulates CCSDS packets. This feels overwhelming. Where should I start and how should I build it up?",
+    "perfect_response": {
+      "defines_minimal_core": true,
+      "provides_iteration_layers": true,
+      "each_layer_has_validation": true,
+      "layers_in_dependency_order": true,
+      "provides_stopping_criteria": ["minimum viable", "full-featured"],
+      "estimates_time_per_layer": true
+    }
+  },
+  {
+    "name": "add-doppler-to-existing",
+    "prompt": "I have a working orbit propagator that computes satellite position over time. Now I want to add Doppler shift calculation. How do I add this feature incrementally without breaking what I already have?",
+    "perfect_response": {
+      "defines_scope_clearly": ["what feature adds", "what it needs from existing code"],
+      "minimal_implementation": true,
+      "provides_validation_test": true,
+      "suggests_refactoring_if_needed": true,
+      "checkpoint_recommendation": ["commit before and after"]
+    }
+  }
+]

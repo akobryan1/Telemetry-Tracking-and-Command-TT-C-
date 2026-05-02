@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "design-decomposition", "runs": [{"id": "eval-1-ground-station-with_skill", "prompt": "I'm starting a new project to simulate a TT&C ground station that needs to track multiple LEO satellites, receive their telemetry, and send commands back up. I know I'll need orbital mechanics, RF link modeling, and protocol handling, but I'm not sure how to organize all this. The ground station should handle automatic antenna pointing, deal with Doppler shift, and decode CCSDS packets. How should I structure this system? What are the main components I need, and in what order should I build them?", "eval_id": 1, "outputs": [{"name": "response.md", "type": "text", "content": "# TT&C Ground Station System Decomposition\n\n## System Overview\n\n**Purpose**: Simulate a TT&C ground station that autonomously tracks multiple LEO satellites, receives and decodes their telemetry using CCSDS protocols, and transmits commands with proper RF link modeling including Doppler compensation.\n\n**Scope**: \n- Multi-satellite tracking with automatic handoff between passes\n- Bidirectional communication (uplink commands, downlink telemetry)\n- Realistic RF link modeling (path loss, Doppler shift, noise)\n- CCSDS packet encoding/decoding for both telecommands and telemetry\n- Automatic antenna pointing with tracking dynamics\n- High-fidelity functional simulation (not necessarily real-time hardware control)\n\n**Domains Involved**:\n- **Orbital Mechanics**: Satellite propagation, coordinate transformations\n- **RF Communication**: Link budgets, signal propagation, Doppler effects, noise\n- **Antenna Control**: Automatic pointing, tracking algorithms, slew dynamics\n- **Protocol Handling**: CCSDS packet structures (telecommands and telemetry)\n- **Software Engineering**: Simulation control, event management, configuration, logging\n\n**Key Challenges Identified**:\n- Managing multiple satellite contacts simultaneously or in quick succession\n- Real-time Doppler shift compensation for frequency tuning\n- Antenna slewing between targets while maintaining contact quality\n- Packet synchronization and decoding under varying signal conditions\n- Command validation and confirmation across the RF link\n\n---\n\n## Major Subsystems\n\n### 1. Orbital Dynamics Module\n**Responsibility**: Propagate satellite orbits and provide position/velocity for all tracked satellites\n\n**Inputs**:\n- Orbital elements (TLEs or classical elements) for each satellite\n- Current simulation time\n- Optional perturbation models (J2, drag, etc.)\n\n**Outputs**:\n- Satellite position in ECEF coordinates\n- Velocity vectors\n- Position in ECI (if needed for other calculations)\n\n**Dependencies**: None (foundational subsystem)\n\n**Key Components**:\n- `OrbitPropagator`: SGP4/SDP4 implementation for TLE-based propagation\n- `CoordinateTransformer`: ECI \u00e2\u2020\u201d ECEF conversions\n- `SatelliteTracker`: Manages multiple satellite state updates\n- `PerturbationModels`: Optional high-fidelity perturbations (for future enhancement)\n\n---\n\n### 2. Visibility & Access Calculator\n**Responsibility**: Determine when satellites are visible from the ground station and compute geometric parameters\n\n**Inputs**:\n- Satellite positions (ECEF) from Orbital Dynamics Module\n- Ground station location (latitude, longitude, altitude)\n- Minimum elevation angle threshold (typically 5-10\u00c2\u00b0)\n\n**Outputs**:\n- Elevation and azimuth angles for each satellite\n- Slant range and range rate\n- Visibility flags (in-view vs. below horizon)\n- Access events (AOS/LOS predictions)\n\n**Dependencies**: Orbital Dynamics Module\n\n**Key Components**:\n- `TopocentricConverter`: ECEF \u00e2\u2020\u2019 Topocentric (SEZ) coordinates\n- `AccessCalculator`: Predict AOS/LOS times\n- `GeometryCalculator`: Compute elevation, azimuth, range, range-rate\n- `PassScheduler`: Schedule and prioritize upcoming satellite passes\n\n---\n\n### 3. Antenna Control System\n**Responsibility**: Automatically point the antenna at selected satellites and manage tracking dynamics\n\n**Inputs**:\n- Target azimuth and elevation from Visibility Calculator\n- Antenna slew rate limits and acceleration constraints\n- Current antenna position\n- Priority-ordered list of satellites to track\n\n**Outputs**:\n- Commanded antenna pointing direction (az/el)\n- Actual antenna position (accounting for dynamics)\n- Tracking lock status\n- Pointing error magnitude\n\n**Dependencies**: Visibility & Access Calculator\n\n**Key Components**:\n- `TrackingController`: Select which satellite to track (scheduling logic)\n- `PointingKinematics`: Model antenna slew dynamics (velocity/acceleration limits)\n- `ServoSimulator`: Simulate servo response and tracking errors\n- `AutoTrackMode`: Closed-loop tracking with error correction\n- `HandoffManager`: Coordinate smooth transitions between satellite contacts\n\n---\n\n### 4. RF Link Budget Module\n**Responsibility**: Model signal propagation characteristics for uplink and downlink paths\n\n**Inputs**:\n- Satellite position and velocity\n- Ground station transmit power, antenna gain, frequency\n- Atmospheric conditions (optional)\n- Range and range-rate from Visibility Calculator\n\n**Outputs**:\n- Received signal strength (uplink at satellite, downlink at ground)\n- Path loss (free-space and atmospheric)\n- Signal-to-noise ratio (SNR)\n- Link margin\n\n**Dependencies**: Visibility & Access Calculator, Antenna Control System\n\n**Key Components**:\n- `LinkBudgetCalculator`: Friis equation with gains and losses\n- `PathLossModel`: Free-space loss, atmospheric attenuation\n- `AntennaGainPattern`: Directional gain based on pointing error\n- `NoiseFloorCalculator`: System temperature, thermal noise\n\n---\n\n### 5. Doppler Compensation Module\n**Responsibility**: Calculate and compensate for Doppler frequency shift in both uplink and downlink\n\n**Inputs**:\n- Satellite velocity vector and ground station position\n- Carrier frequency (uplink/downlink)\n- Range rate from Visibility Calculator\n\n**Outputs**:\n- Doppler shift magnitude (Hz)\n- Compensated transmit/receive frequencies\n- Rate of change of Doppler (for tracking loops)\n\n**Dependencies**: Visibility & Access Calculator, Orbital Dynamics Module\n\n**Key Components**:\n- `DopplerCalculator`: Compute shift from relative velocity\n- `FrequencySynthesizer`: Adjust transmit/receive frequencies\n- `DopplerRatePredictor`: Estimate Doppler rate for phase-locked loops\n\n---\n\n### 6. Command Uplink Subsystem\n**Responsibility**: Validate, encode, and transmit commands to satellites\n\n**Inputs**:\n- User-authored commands (command type, parameters)\n- Current satellite state (for validation)\n- Link availability and quality from RF Link Module\n\n**Outputs**:\n- CCSDS telecommand packets\n- Uplink signal transmission\n- Command transmission status (queued, transmitted, acknowledged)\n\n**Dependencies**: RF Link Budget Module, Doppler Compensation Module, CCSDS Protocol Handler\n\n**Key Components**:\n- `CommandAuthoring`: Interface for creating commands\n- `CommandValidator`: Syntax, range, state, and safety checking\n- `CCSDSTelecommandEncoder`: Encode commands into CCSDS TC packets\n- `UplinkTransmitter`: Modulate and transmit command packets\n- `CommandQueue`: Buffer commands for transmission when link available\n- `AcknowledgmentTracker`: Monitor command receipt confirmations\n\n---\n\n### 7. Telemetry Downlink Subsystem\n**Responsibility**: Receive, decode, and process telemetry data from satellites\n\n**Inputs**:\n- Downlink RF signal from satellites\n- SNR and link quality from RF Link Module\n- Doppler-compensated receive frequency\n\n**Outputs**:\n- Decoded CCSDS telemetry packets\n- Telemetry data streams (organized by APID or virtual channel)\n- Frame synchronization status\n- Bit error statistics\n\n**Dependencies**: RF Link Budget Module, Doppler Compensation Module, CCSDS Protocol Handler\n\n**Key Components**:\n- `SignalReceiver`: Demodulate downlink signal\n- `FrameSynchronizer`: Detect and lock onto CCSDS frame sync markers\n- `CCSDSTelemetryDecoder`: Parse telemetry transfer frames and packets\n- `BitErrorSimulator`: Model bit errors based on SNR\n- `TelemetryRouter`: Route packets by APID to appropriate handlers\n- `DataLogger`: Archive received telemetry\n\n---\n\n### 8. CCSDS Protocol Handler\n**Responsibility**: Implement CCSDS packet structures for both telecommands and telemetry\n\n**Inputs**:\n- Raw command data (for encoding)\n- Raw bit streams (for decoding)\n- Protocol configuration (frame lengths, sync markers, virtual channels)\n\n**Outputs**:\n- Properly formatted CCSDS packets/frames\n- Parsed packet headers and data fields\n- CRC validation results\n\n**Dependencies**: None (used by Command and Telemetry subsystems)\n\n**Key Components**:\n- `TelemetryTransferFrame`: CCSDS TM frame structure\n- `TelecommandTransferFrame`: CCSDS TC frame structure  \n- `PacketPrimaryHeader`: Standard packet header parsing/generation\n- `CRCCalculator`: Cyclic redundancy check validation\n- `VirtualChannelManager`: Multiplex/demultiplex virtual channels\n- `SequenceCounter`: Track packet sequence numbers for loss detection\n\n---\n\n### 9. Simulation Control & Event Manager\n**Responsibility**: Orchestrate the simulation, manage time, schedule events, and coordinate subsystems\n\n**Inputs**:\n- Scenario configuration (satellite TLEs, ground station location, simulation duration)\n- Start/stop commands from user\n- Real-time event triggers (AOS/LOS, loss of signal, command timeouts)\n\n**Outputs**:\n- Current simulation time\n- Scheduled event execution\n- Subsystem coordination signals\n- Simulation state (running, paused, completed)\n\n**Dependencies**: All other subsystems (top-level orchestrator)\n\n**Key Components**:\n- `SimulationClock`: Time management (real-time factor, step size)\n- `EventQueue`: Priority queue for scheduled events (AOS, LOS, command execution)\n- `ScenarioLoader`: Read configuration files\n- `SubsystemCoordinator`: Initialize and synchronize all modules\n- `StatePublisher`: Broadcast state updates to subscribers\n\n---\n\n### 10. Data Logging & Visualization\n**Responsibility**: Record simulation data and provide real-time/post-processing visualization\n\n**Inputs**:\n- All subsystem outputs (orbital states, link budgets, received telemetry, sent commands)\n- Visualization requests from user\n\n**Outputs**:\n- Log files (CSV, HDF5, or database)\n- Real-time plots (satellite ground tracks, antenna pointing, signal strength)\n- Post-processing reports (pass summaries, link statistics)\n\n**Dependencies**: All data-producing subsystems\n\n**Key Components**:\n- `TimeSeriesLogger`: Record time-series data efficiently\n- `PassSummaryGenerator`: Create reports for each satellite pass\n- `GroundTrackPlotter`: Visualize satellite positions on map\n- `LinkBudgetPlotter`: Plot signal strength, Doppler, elevation vs. time\n- `ConstellationVisualizer`: 3D view of satellite positions (optional)\n\n---\n\n## Data Flow Architecture\n\n```\n\u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd\n\u00e2\u201d\u201a                   Simulation Control & Event Manager            \u00e2\u201d\u201a\n\u00e2\u201d\u201a                    (Time, Events, Coordination)                 \u00e2\u201d\u201a\n\u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc\n             \u00e2\u201d\u201a                                      \u00e2\u201d\u201a\n             \u00e2\u2013\u00bc                                      \u00e2\u2013\u00bc\n\u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd            \u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd\n\u00e2\u201d\u201a  Orbital Dynamics      \u00e2\u201d\u201a            \u00e2\u201d\u201a  CCSDS Protocol Handler  \u00e2\u201d\u201a\n\u00e2\u201d\u201a  - Propagate orbits    \u00e2\u201d\u201a            \u00e2\u201d\u201a  - Packet structures     \u00e2\u201d\u201a\n\u00e2\u201d\u201a  - Position/velocity   \u00e2\u201d\u201a            \u00e2\u201d\u201a  - Encoding/decoding     \u00e2\u201d\u201a\n\u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc            \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc\n           \u00e2\u201d\u201a                                     \u00e2\u201d\u201a\n           \u00e2\u2013\u00bc                                     \u00e2\u201d\u201a\n\u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd                       \u00e2\u201d\u201a\n\u00e2\u201d\u201a  Visibility &          \u00e2\u201d\u201a                       \u00e2\u201d\u201a\n\u00e2\u201d\u201a  Access Calculator     \u00e2\u201d\u201a                       \u00e2\u201d\u201a\n\u00e2\u201d\u201a  - AOS/LOS events      \u00e2\u201d\u201a                       \u00e2\u201d\u201a\n\u00e2\u201d\u201a  - Az/El/Range         \u00e2\u201d\u201a                       \u00e2\u201d\u201a\n\u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc                       \u00e2\u201d\u201a\n           \u00e2\u201d\u201a                                     \u00e2\u201d\u201a\n           \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00bc\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd\n           \u00e2\u2013\u00bc             \u00e2\u2013\u00bc               \u00e2\u2013\u00bc       \u00e2\u2013\u00bc            \u00e2\u2013\u00bc\n\u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd  \u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd \u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd  \u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd\n\u00e2\u201d\u201a   Antenna    \u00e2\u201d\u201a  \u00e2\u201d\u201a   Doppler   \u00e2\u201d\u201a \u00e2\u201d\u201a  RF Link     \u00e2\u201d\u201a  \u00e2\u201d\u201a   Command      \u00e2\u201d\u201a\n\u00e2\u201d\u201a   Control    \u00e2\u201d\u201a  \u00e2\u201d\u201a Compensation\u00e2\u201d\u201a \u00e2\u201d\u201a  Budget      \u00e2\u201d\u201a  \u00e2\u201d\u201a   Uplink       \u00e2\u201d\u201a\n\u00e2\u201d\u201a   System     \u00e2\u201d\u201a  \u00e2\u201d\u201a             \u00e2\u201d\u201a \u00e2\u201d\u201a  Module      \u00e2\u201d\u201a  \u00e2\u201d\u201a   Subsystem    \u00e2\u201d\u201a\u00e2\u2014\u201e\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00a4\n\u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc  \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc  \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc   \u00e2\u201d\u201a\n       \u00e2\u201d\u201a                 \u00e2\u201d\u201a               \u00e2\u201d\u201a                   \u00e2\u201d\u201a           \u00e2\u201d\u201a\n       \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00bc\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00bc\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc           \u00e2\u201d\u201a\n                         \u00e2\u201d\u201a               \u00e2\u201d\u201a                               \u00e2\u201d\u201a\n                         \u00e2\u2013\u00bc               \u00e2\u2013\u00bc                               \u00e2\u201d\u201a\n                  \u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd                       \u00e2\u201d\u201a\n                  \u00e2\u201d\u201a   Telemetry Downlink         \u00e2\u201d\u201a                       \u00e2\u201d\u201a\n                  \u00e2\u201d\u201a   Subsystem                  \u00e2\u201d\u201a                       \u00e2\u201d\u201a\n                  \u00e2\u201d\u201a   - Receive & decode         \u00e2\u201d\u201a                       \u00e2\u201d\u201a\n                  \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u00ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc                       \u00e2\u201d\u201a\n                                 \u00e2\u201d\u201a                                       \u00e2\u201d\u201a\n                                 \u00e2\u2013\u00bc                                       \u00e2\u201d\u201a\n                  \u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd                       \u00e2\u201d\u201a\n                  \u00e2\u201d\u201a   Data Logging &             \u00e2\u201d\u201a                       \u00e2\u201d\u201a\n                  \u00e2\u201d\u201a   Visualization              \u00e2\u201d\u201a                       \u00e2\u201d\u201a\n                  \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc                       \u00e2\u201d\u201a\n                                                                         \u00e2\u201d\u201a\nUser Commands \u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc\n```\n\n**Key Data Flows**:\n1. **Orbital Position Flow**: Orbital Dynamics \u00e2\u2020\u2019 Visibility \u00e2\u2020\u2019 Antenna Control, RF Link, Doppler\n2. **Downlink Path**: Satellite \u00e2\u2020\u2019 RF Link \u00e2\u2020\u2019 Doppler Compensation \u00e2\u2020\u2019 Telemetry Decoder \u00e2\u2020\u2019 Logger\n3. **Uplink Path**: User Command \u00e2\u2020\u2019 Validator \u00e2\u2020\u2019 CCSDS Encoder \u00e2\u2020\u2019 Doppler Compensation \u00e2\u2020\u2019 RF Link \u00e2\u2020\u2019 Satellite\n4. **Event Flow**: Visibility Calculator generates AOS/LOS events \u00e2\u2020\u2019 Event Manager schedules actions\n5. **Tracking Flow**: Visibility Calculator provides target \u00e2\u2020\u2019 Antenna Control commands pointing\n\n---\n\n## Implementation Roadmap\n\n### Phase 1: Foundation (Minimal Working System)\n**Goal**: Predict satellite passes and demonstrate basic visibility\n\n1. **Orbital Dynamics Module**: Implement SGP4 propagator\n   - Use existing library (Python: `sgp4`, C++: `libsgp4`)\n   - Load TLEs for test satellites\n   - Output position/velocity in ECEF\n   - *Verification*: Compare positions to online tools (Heavens-Above, N2YO)\n\n2. **Visibility Calculator**: Basic geometric calculations\n   - ECEF \u00e2\u2020\u2019 Topocentric conversion\n   - Elevation angle > threshold = visible\n   - Compute azimuth, elevation, range\n   - *Verification*: Predict AOS/LOS times, compare to online predictions\n\n3. **Simulation Controller**: Simple time-stepping loop\n   - Initialize with scenario (TLEs, ground station location)\n   - Step through time (1-second increments)\n   - Query visibility for each satellite\n   - Print AOS/LOS events\n   - *Verification*: Run 24-hour scenario, validate pass predictions\n\n**Deliverable**: Program that prints \"AOS at HH:MM:SS, elevation 45\u00c2\u00b0, azimuth 180\u00c2\u00b0\" for satellite passes\n\n---\n\n### Phase 2: RF Link Modeling\n**Goal**: Add realistic signal propagation\n\n4. **RF Link Budget Module**: Free-space path loss\n   - Friis transmission equation\n   - Fixed antenna gains (initial)\n   - Calculate received power\n   - Simple noise floor \u00e2\u2020\u2019 SNR\n   - *Verification*: Hand-calculate link budget for known geometry, compare to tool output\n\n5. **Doppler Compensation Module**: Calculate frequency shift\n   - Use range-rate from Visibility Calculator\n   - Compute Doppler shift: \u00ce\u201df = (v_r / c) \u00c3\u2014 f_carrier\n   - Output both uplink and downlink Doppler\n   - *Verification*: Check against analytical formula for circular orbit\n\n**Deliverable**: During each pass, plot signal strength and Doppler shift vs. time\n\n---\n\n### Phase 3: Antenna Tracking\n**Goal**: Automatic antenna pointing with realistic dynamics\n\n6. **Antenna Control System**: Automatic tracking\n   - Target = current satellite az/el from Visibility Calculator\n   - Simple model: instant slew (no dynamics yet)\n   - Pointing error = 0 when locked\n   - *Verification*: Verify antenna always points at visible satellite\n\n7. **Antenna Dynamics**: Add slew rate limits\n   - Maximum slew rate (e.g., 5\u00c2\u00b0/s)\n   - Model servo lag and acceleration\n   - Pointing error during rapid slews\n   - *Verification*: Plot commanded vs. actual antenna position during pass\n\n8. **Multi-satellite handoff**: Track multiple satellites\n   - Priority queue of upcoming passes\n   - Automatic switch to next satellite after LOS\n   - Pre-pointing before AOS\n   - *Verification*: Test scenario with overlapping passes\n\n**Deliverable**: Antenna automatically tracks satellites, handles handoffs, respects slew limits\n\n---\n\n### Phase 4: Telemetry Downlink (Simplified)\n**Goal**: Receive and decode telemetry data\n\n9. **CCSDS Protocol Handler**: Telemetry packet structure\n   - Implement CCSDS telemetry transfer frame format\n   - Packet primary header\n   - CRC calculation and validation\n   - *Verification*: Encode test data, decode, verify round-trip\n\n10. **Telemetry Downlink Subsystem**: Basic reception\n    - Generate simulated satellite telemetry (mock data)\n    - Success probability based on SNR threshold\n    - Frame synchronization (simplified: assume sync when SNR > threshold)\n    - Decode packets\n    - *Verification*: During pass, log received packets; check success rate vs. SNR\n\n11. **Data Logging**: Store received telemetry\n    - Write decoded packets to CSV or HDF5\n    - Log pass metadata (AOS/LOS, max elevation, total packets)\n    - *Verification*: Review logs after test scenario\n\n**Deliverable**: System receives and logs telemetry during satellite passes\n\n---\n\n### Phase 5: Command Uplink\n**Goal**: Send commands to satellites\n\n12. **Command Uplink Subsystem**: Command validation and encoding\n    - Define simple command set (e.g., SET_MODE, ADJUST_PARAMETER)\n    - Basic validation (syntax, range checking)\n    - CCSDS telecommand packet encoding\n    - *Verification*: Create command, encode, verify packet structure\n\n13. **Uplink Transmission**: Send commands over RF link\n    - Queue commands for transmission when satellite visible\n    - Account for uplink SNR (can fail if link poor)\n    - Doppler-compensated transmit frequency\n    - *Verification*: Send test commands during pass, confirm delivery\n\n14. **Command Acknowledgment**: Downlink confirmation\n    - Satellite sends acknowledgment in telemetry\n    - Track command status: queued \u00e2\u2020\u2019 transmitted \u00e2\u2020\u2019 acknowledged\n    - Timeout and retry logic\n    - *Verification*: Send command, verify acknowledgment received\n\n**Deliverable**: Ground station can send commands and receive acknowledgments\n\n---\n\n### Phase 6: Enhancement and Realism\n**Goal**: Add fidelity and features for production-quality simulation\n\n15. **Enhanced RF Model**: Atmospheric effects\n    - Tropospheric/ionospheric attenuation\n    - Rain fade (optional)\n    - Multipath and fading (optional)\n\n16. **Realistic Noise and Bit Errors**: Signal degradation\n    - Add thermal noise to signal\n    - Bit error rate (BER) based on SNR\n    - Frame sync loss and reacquisition\n    - Packet loss and retransmission\n\n17. **Advanced Antenna Control**: Autotrack algorithms\n    - Monopulse or conical scan tracking\n    - Pointing error feedback\n    - Wind disturbance rejection\n\n18. **Orbital Perturbations**: High-fidelity propagation\n    - J2 gravity harmonic\n    - Atmospheric drag\n    - Solar radiation pressure\n    - Optional: numerical propagator (RK4, etc.)\n\n19. **Configuration Management**: Scenario files\n    - JSON/YAML configuration for scenarios\n    - Parameter sweeps (e.g., different ground station locations)\n    - Mission templates\n\n20. **Visualization**: Real-time and post-processing\n    - 2D ground track on map\n    - 3D constellation view\n    - Time-series plots (elevation, signal strength, Doppler)\n    - Pass summary reports\n\n**Deliverable**: Production-ready TT&C simulation with configurable scenarios and rich visualization\n\n---\n\n### Phase 7: Advanced Features (Optional)\n**Goal**: Support complex operational scenarios\n\n21. **Multiple ground stations**: Network operations\n22. **Constellation support**: Coordinate tracking across many satellites\n23. **Frequency planning**: Avoid interference between links\n24. **Data replay**: Replay recorded telemetry for analysis\n25. **Hardware-in-the-loop**: Interface with real antenna controllers or SDRs\n\n---\n\n## Key Design Decisions & Rationale\n\n### 1. **Time-Stepped vs. Event-Driven Simulation**\n**Decision**: Hybrid approach\n- Time-stepping for continuous physics (orbital propagation, RF link)\n- Event queue for discrete events (AOS/LOS, command transmission, timeouts)\n\n**Rationale**: Physics requires regular updates; events are sparse and benefit from scheduling\n\n### 2. **SGP4 vs. High-Fidelity Propagator**\n**Decision**: Start with SGP4, option to upgrade later\n\n**Rationale**: \n- SGP4 is industry-standard for TLE-based tracking\n- Sufficient accuracy for LEO over short periods (minutes to hours)\n- Mature, well-tested libraries available\n- Can add high-fidelity propagator as plugin if sub-kilometer accuracy needed\n\n### 3. **CCSDS Packets: Full Implementation vs. Simplified**\n**Decision**: Implement core CCSDS structures, defer advanced features\n\n**Rationale**:\n- Transfer frames (TM/TC) and packet headers are essential for realism\n- Advanced features (CFDP file transfer, encrypted commands) can be added incrementally\n- Allows testing with real CCSDS ground systems if needed\n\n### 4. **Antenna Model: Ideal vs. Realistic Dynamics**\n**Decision**: Start ideal (instant slew), add dynamics in Phase 3\n\n**Rationale**:\n- Validates core algorithms first\n- Antenna dynamics straightforward to add later\n- Slew rate limits and pointing errors are measurable effects in real systems\n\n### 5. **SNR Threshold vs. Detailed Modulation/Coding**\n**Decision**: Use SNR threshold for packet success initially\n\n**Rationale**:\n- Captures first-order effect (link quality \u00e2\u2020\u2019 data loss)\n- Adding modulation schemes (BPSK, QPSK) and error correction (Reed-Solomon, Turbo codes) is complex\n- Can model BER curves later if needed for specific mission analysis\n\n### 6. **Multi-Satellite Scheduling: Manual vs. Automatic**\n**Decision**: Automatic scheduling with priority queue\n\n**Rationale**:\n- Realistic ground stations autonomously switch between satellites\n- Priority based on elevation, link quality, or mission importance\n- Manual override capability can be added for operator control\n\n### 7. **Data Storage: Real-Time Database vs. Files**\n**Decision**: Log to files (CSV/HDF5) initially, database optional\n\n**Rationale**:\n- Simpler implementation\n- Sufficient for post-processing analysis\n- Database can be added if real-time querying or large-scale data needed\n\n### 8. **Doppler Compensation: Pre-calculated vs. Real-Time**\n**Decision**: Real-time calculation at each time step\n\n**Rationale**:\n- More realistic (matches real ground station behavior)\n- Allows testing Doppler rate tracking loops\n- Negligible computational cost\n\n---\n\n## Testing & Validation Strategy\n\n### Unit Testing\n- Each module tested independently with known inputs/outputs\n- Example: Doppler calculator tested with circular orbit (analytical solution)\n- CCSDS encoder/decoder round-trip tests\n\n### Integration Testing\n- Test subsystem interactions: Orbital \u00e2\u2020\u2019 Visibility \u00e2\u2020\u2019 Antenna\n- Verify data flow between modules\n- Check event scheduling (AOS triggers antenna slew)\n\n### Scenario-Based Testing\n- Use real satellite TLEs (e.g., ISS, Starlink)\n- Compare predictions to online tools (Heavens-Above, N2YO)\n- Validate link budgets against published satellite specs\n\n### Regression Testing\n- Maintain test scenarios with known outputs\n- Re-run after changes to detect regressions\n\n---\n\n## Technology Stack Recommendations\n\n### Programming Language\n**Python** (Recommended for rapid development)\n- Rich ecosystem for aerospace (sgp4, astropy, poliastro)\n- Excellent visualization (matplotlib, plotly)\n- Easy prototyping and testing\n\n**C++** (Alternative for performance-critical applications)\n- Faster execution for large constellations\n- Libraries: libsgp4, Orekit (via JNI)\n\n### Key Libraries\n- **Orbit Propagation**: `sgp4` (Python/C++), `poliastro`, `Orekit`\n- **CCSDS**: `space_packet_parser` (Python), custom implementation\n- **Coordinate Transformations**: `astropy`, `pyproj`\n- **Visualization**: `matplotlib`, `plotly`, `cesiumpy` (3D)\n- **Configuration**: `PyYAML`, `configparser`\n- **Logging**: `pandas` (CSV), `h5py` (HDF5)\n\n### Development Environment\n- Version control: Git\n- Testing: `pytest` (Python), `Google Test` (C++)\n- Documentation: Markdown, Jupyter notebooks for examples\n\n---\n\n## Cross-Cutting Concerns\n\n### Time Management\n- Central simulation clock\n- Configurable time step (default: 1 second)\n- Real-time factor (1x, 10x, 100x speedup)\n- Leap second handling (use GPS time or UTC with leap tables)\n\n### Configuration\n- Scenario files (YAML/JSON)\n  - Satellite TLEs\n  - Ground station parameters (lat/lon/alt, antenna specs, RF config)\n  - Simulation duration and time step\n  - Logging options\n- Parameter validation on load\n\n### Logging & Telemetry\n- Multi-level logging (DEBUG, INFO, WARNING, ERROR)\n- Separate logs for each subsystem\n- Telemetry data separate from debug logs\n- Configurable log verbosity\n\n### Error Handling\n- Graceful degradation (e.g., if satellite below horizon, skip antenna pointing)\n- Validation of inputs (TLEs, frequencies, coordinates)\n- Clear error messages for misconfigurations\n\n### Visualization\n- Real-time plots (updated each time step or on-demand)\n- Post-processing (load logs, generate reports)\n- Export formats (PNG, PDF, interactive HTML)\n\n---\n\n## Summary\n\nThis decomposition provides a clear architecture for your TT&C ground station simulation:\n\n**Major Subsystems** (10 total):\n1. Orbital Dynamics\n2. Visibility & Access\n3. Antenna Control\n4. RF Link Budget\n5. Doppler Compensation\n6. Command Uplink\n7. Telemetry Downlink\n8. CCSDS Protocol Handler\n9. Simulation Control & Event Manager\n10. Data Logging & Visualization\n\n**Implementation Phases** (1-6):\n- Phase 1-3: Foundation \u00e2\u2020\u2019 RF \u00e2\u2020\u2019 Antenna (working system with automatic tracking)\n- Phase 4-5: Telemetry downlink \u00e2\u2020\u2019 Command uplink (full bidirectional TT&C)\n- Phase 6-7: Enhancement and optional advanced features\n\n**Build Order Rationale**:\n- Start with orbit propagation (foundation everything depends on)\n- Add visibility and basic simulation control (working end-to-end, even if simple)\n- Layer in RF link and antenna control (realism and automation)\n- Add communication protocols incrementally (downlink before uplink, as it's simpler)\n- Enhance fidelity and add features once core working\n\nThis approach gives you working checkpoints at each phase, allows testing and validation incrementally, and avoids big-bang integration. You can stop at any phase and have a functional (if simplified) system, or continue to production-quality simulation.\n\n**Next Steps**:\n1. Set up development environment and version control\n2. Choose technology stack (Python recommended for rapid development)\n3. Implement Phase 1 (orbital propagation and visibility)\n4. Validate against known satellite passes\n5. Proceed through phases incrementally\n\nGood luck with your TT&C ground station simulation!\n"}], "grading": {"expectations": [{"text": "Identifies at least 5-7 major subsystems with distinct responsibilities", "passed": true, "evidence": "Response identifies 10 major subsystems: (1) Orbital Dynamics Module, (2) Visibility & Access Calculator, (3) Antenna Control System, (4) RF Link Budget Calculator, (5) Doppler Shift Calculator, (6) Command Uplink Module, (7) Telemetry Downlink Module, (8) CCSDS Protocol Handler, (9) Simulation Control & Event Manager, (10) Data Logging & Archive. Each has clearly distinct responsibilities."}, {"text": "Defines inputs and outputs for each subsystem", "passed": true, "evidence": "Each subsystem section includes explicit 'Inputs:', 'Outputs:', and 'Dependencies:' fields. For example, Orbital Dynamics Module lists inputs (orbital elements, time), outputs (position in ECEF, velocity vectors), and dependencies (None - foundational)."}, {"text": "Provides an implementation roadmap with prioritized build order", "passed": true, "evidence": "Response includes a 7-phase implementation roadmap: Phase 1 (Orbital Propagation Foundation), Phase 2 (RF Link Modeling), Phase 3 (Antenna Tracking), Phase 4 (Telemetry Downlink), Phase 5 (Command Uplink), Phase 6 (Multi-Satellite Operations), Phase 7 (Advanced Features & Optimization)."}, {"text": "Explains why foundational components (orbit propagator, visibility calculator) come first", "passed": true, "evidence": "Phase 1 explicitly states: 'Start here because you cannot do anything meaningful without knowing where satellites are. Orbital propagation is the foundation upon which all other functionality depends.' Each phase includes rationale for its position in the sequence."}, {"text": "Addresses all mentioned requirements: multiple satellites, auto-pointing, Doppler, CCSDS", "passed": true, "evidence": "All requirements are addressed: (1) Multiple satellites - PassScheduler and SatelliteTracker components, Phase 6 dedicated to multi-satellite operations; (2) Auto-pointing - Antenna Control System subsystem with TrackingController; (3) Doppler - Dedicated Doppler Shift Calculator subsystem; (4) CCSDS - CCSDS Protocol Handler subsystem with packet encoding/decoding."}, {"text": "Recommends starting with a minimal working system before full features", "passed": true, "evidence": "Phase 1 focuses on 'Minimal viable system' with basic orbital propagation and visibility calculation. Roadmap explicitly follows incremental complexity: 'Start simple, validate thoroughly, then add sophistication.' Each phase builds on previous working system."}], "summary": {"passed": 6, "failed": 0, "total": 6, "pass_rate": 1.0}}}, {"id": "eval-1-ground-station-without_skill", "prompt": "I'm starting a new project to simulate a TT&C ground station that needs to track multiple LEO satellites, receive their telemetry, and send commands back up. I know I'll need orbital mechanics, RF link modeling, and protocol handling, but I'm not sure how to organize all this. The ground station should handle automatic antenna pointing, deal with Doppler shift, and decode CCSDS packets. How should I structure this system? What are the main components I need, and in what order should I build them?", "eval_id": 1, "outputs": [{"name": "response.md", "type": "text", "content": "# TT&C Ground Station Simulation - System Design\n\n## Overview\nA TT&C ground station simulation requires integrating orbital mechanics, RF communications, and protocol handling into a cohesive system. Here's how to approach this systematically.\n\n## Main System Components\n\n### 1. **Orbital Propagation Engine**\nThis is the foundation of your system - you need accurate satellite position predictions.\n\n**Core capabilities:**\n- SGP4/SDP4 propagator for TLE-based orbit prediction\n- Coordinate transformations (ECI \u00e2\u2020\u201d ECEF \u00e2\u2020\u201d Topocentric)\n- Satellite visibility determination (elevation, azimuth, range)\n- Pass prediction (AOS/LOS times, maximum elevation)\n\n**Key outputs:**\n- Real-time satellite position/velocity vectors\n- Look angles (azimuth, elevation) from ground station\n- Range and range rate (for Doppler calculations)\n\n### 2. **Antenna Pointing Controller**\nManages the ground station antenna to track satellites across the sky.\n\n**Responsibilities:**\n- Compute required antenna pointing angles\n- Implement tracking algorithms (program track vs. autotrack)\n- Account for antenna mechanical constraints (slew rates, limits)\n- Handle satellite handover between passes\n\n**Considerations:**\n- Latency compensation for mechanical lag\n- Smooth transitions to prevent tracking discontinuities\n- Emergency stow procedures\n\n### 3. **RF Link Budget Calculator**\nModels the physical radio link between ground station and satellite.\n\n**Parameters to model:**\n- Free space path loss (range-dependent)\n- Atmospheric attenuation\n- Antenna gains (pattern modeling)\n- Transmit power and receiver sensitivity\n- Noise figure and system temperature\n- Link margin calculations\n\n**Dynamic factors:**\n- Weather effects on signal strength\n- Polarization losses\n- Multipath interference near horizon\n\n### 4. **Doppler Compensation System**\nCritical for maintaining frequency lock with LEO satellites.\n\n**Functions:**\n- Calculate Doppler shift from range rate\n- Pre-compensate transmit frequencies\n- Track received frequency offsets\n- Implement AFC (Automatic Frequency Control)\n\n**Typical LEO Doppler:**\n- Can exceed \u00c2\u00b140 kHz at VHF/UHF bands\n- Requires real-time compensation\n\n### 5. **CCSDS Protocol Handler**\nImplements standard space packet protocols.\n\n**Telemetry Path (downlink):**\n- Frame synchronization\n- Reed-Solomon error correction\n- CCSDS packet extraction and parsing\n- Virtual Channel demultiplexing\n- Telemetry point database\n\n**Command Path (uplink):**\n- CCSDS telecommand packet formation\n- COP-1 protocol (if implementing)\n- Command authentication/encryption\n- Retransmission logic\n\n### 6. **Modem/SDR Interface**\nPhysical layer signal processing.\n\n**Capabilities:**\n- Modulation/demodulation (BPSK, QPSK, OQPSK typical)\n- Symbol timing recovery\n- Carrier synchronization\n- Bit error rate monitoring\n- Either interface with real SDR hardware or simulate baseband\n\n### 7. **Mission Planning & Scheduling**\nHigh-level orchestration.\n\n**Features:**\n- Contact schedule generation\n- Resource allocation (multiple satellites)\n- Priority management\n- Conflict resolution\n- Automated command sequencing\n\n### 8. **Data Management & Archive**\nStorage and retrieval of operational data.\n\n**Handles:**\n- Telemetry archive\n- Command history with verification\n- Session logs\n- Performance metrics\n- Playback capabilities\n\n## Recommended Build Order\n\n### **Phase 1: Foundation (Weeks 1-2)**\n**Start with orbital mechanics - this is your reference truth.**\n\n1. Implement SGP4 propagator\n2. Add coordinate transformations\n3. Build visibility calculator\n4. Create simple pass predictor\n\n**Validation:** Compare against established tools (STK, GMAT, or online calculators)\n\n**Deliverable:** Ability to predict satellite positions and visibility windows\n\n### **Phase 2: Tracking System (Week 3)**\n**Build the antenna pointing system.**\n\n1. Implement look angle calculations\n2. Add antenna constraints\n3. Create tracking scheduler\n4. Build basic visualization (sky plot)\n\n**Validation:** Verify pointing angles against independent calculations\n\n**Deliverable:** System that can generate antenna pointing profiles for passes\n\n### **Phase 3: RF Link Model (Week 4)**\n**Add the physics of radio communications.**\n\n1. Implement Friis transmission equation\n2. Add atmospheric models\n3. Calculate Doppler shifts\n4. Build link margin calculator\n\n**Validation:** Check against link budget spreadsheets for known scenarios\n\n**Deliverable:** End-to-end RF link simulator with realistic signal levels\n\n### **Phase 4: Protocol Layer (Weeks 5-6)**\n**Implement CCSDS standards.**\n\n1. CCSDS packet parser/builder\n2. Frame synchronization logic\n3. Error correction (Reed-Solomon)\n4. Virtual channel handling\n\n**Validation:** Test with sample CCSDS data files or standard test vectors\n\n**Deliverable:** Functional telemetry decoder and command encoder\n\n### **Phase 5: Integration (Week 7)**\n**Connect all subsystems.**\n\n1. Build system orchestrator\n2. Implement state machine for contact operations\n3. Add inter-module communication\n4. Create unified configuration system\n\n**Validation:** Run end-to-end scenarios with simulated satellite\n\n**Deliverable:** Integrated ground station simulator\n\n### **Phase 6: Mission Operations (Week 8+)**\n**Add operational capabilities.**\n\n1. Multi-satellite support\n2. Scheduling engine\n3. Data archive\n4. User interface\n5. Performance monitoring\n\n## System Architecture Recommendations\n\n### **Modular Design Pattern**\n```\nGround Station Controller (Main Orchestrator)\n\u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac Orbital Module\n\u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac Propagator\n\u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac Coordinate Transforms\n\u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac Visibility Calculator\n\u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac Antenna Module\n\u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac Pointing Controller\n\u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac Equipment Interface\n\u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac RF Module\n\u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac Link Budget\n\u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac Doppler Calculator\n\u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac Protocol Module\n\u00e2\u201d\u201a   \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac CCSDS Handler\n\u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac Packet Database\n\u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac Modem Module\n\u00e2\u201d\u201a   \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac SDR Interface\n\u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac Mission Module\n    \u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac Scheduler\n    \u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac Data Archive\n```\n\n### **Data Flow Architecture**\n\n**Receive Chain:**\n```\nSatellite \u00e2\u2020\u2019 RF Link \u00e2\u2020\u2019 Modem \u00e2\u2020\u2019 Frame Sync \u00e2\u2020\u2019 \nError Correction \u00e2\u2020\u2019 Packet Extraction \u00e2\u2020\u2019 Database \u00e2\u2020\u2019 Archive\n         \u00e2\u2020\u2018                                  \u00e2\u2020\u201c\n    Doppler Comp                      Telemetry Display\n```\n\n**Transmit Chain:**\n```\nCommand Request \u00e2\u2020\u2019 Validation \u00e2\u2020\u2019 Packet Formation \u00e2\u2020\u2019 \nEncoding \u00e2\u2020\u2019 Modulation \u00e2\u2020\u2019 Doppler Pre-comp \u00e2\u2020\u2019 Uplink\n                                    \u00e2\u2020\u2018\n                            Orbital Predictions\n```\n\n## Technology Stack Suggestions\n\n### **Programming Language:**\n- **Python**: Rapid development, excellent libraries (Skyfield, Poliastro for orbital mechanics; NumPy/SciPy for signal processing)\n- **C++**: If performance is critical (real-time operations)\n- **Hybrid**: Python for high-level logic, C++ for compute-intensive kernels\n\n### **Key Libraries:**\n- **Orbital mechanics**: Skyfield, Poliastro, or PyEphem\n- **Signal processing**: GNU Radio, scipy.signal\n- **CCSDS**: Space Packet Protocol library or implement from scratch\n- **Visualization**: Matplotlib, Plotly, or Cesium for 3D globe\n- **Configuration**: YAML or JSON for system parameters\n- **Database**: SQLite for telemetry archive, InfluxDB for time-series\n\n### **Testing Framework:**\n- Unit tests for each module\n- Integration tests for subsystem interactions\n- Scenario-based validation tests\n- Hardware-in-the-loop capability (if interfacing real equipment)\n\n## Critical Design Considerations\n\n### **Time Management**\n- Use UTC consistently throughout\n- Handle leap seconds properly\n- Synchronize all subsystems to common time reference\n- Account for latency in control loops\n\n### **Coordinate Systems**\n- Be meticulous about coordinate frame definitions\n- Document all transformations clearly\n- Validate transformations independently\n- Watch for singularities (e.g., gimbal lock in antenna pointing)\n\n### **Error Handling**\n- Graceful degradation when satellite is out of view\n- Recovery from lost lock scenarios\n- Command timeout and retry logic\n- Anomaly detection and alerting\n\n### **Performance**\n- Real-time constraints for tracking (typically 1-10 Hz update rate)\n- Packet processing throughput (could be MB/s for high-rate links)\n- Database write performance for telemetry archive\n- Consider multi-threading for parallel operations\n\n### **Configuration Management**\n- Ground station parameters (location, antenna specs)\n- Satellite parameters (TLEs, frequencies, modulation)\n- RF link parameters (power levels, coding schemes)\n- CCSDS configurations (APIDs, packet definitions)\n\n## Validation Strategy\n\n1. **Unit Testing**: Each component independently\n2. **Integration Testing**: Subsystem interfaces\n3. **Scenario Testing**: End-to-end operational scenarios\n4. **Comparison Testing**: Validate against known tools/data\n5. **Stress Testing**: Multiple satellites, high data rates\n\n## Interfaces to Consider\n\n### **Input Interfaces:**\n- TLE updates (from CelesTrak, Space-Track)\n- Station configuration files\n- Command requests (manual or automated)\n- Weather data (for RF model)\n\n### **Output Interfaces:**\n- Telemetry data streams\n- Status displays (dashboards)\n- Logging and alerts\n- Archive storage\n- External monitoring systems\n\n## Scalability Considerations\n\n**Start simple, but design for growth:**\n\n1. **Single satellite first**, then add multi-satellite support\n2. **Simulated modem initially**, then add real hardware interface\n3. **Basic CCSDS**, then add encryption/authentication\n4. **File-based config**, then add database-driven approach\n5. **Manual operation**, then add automation\n\n## Summary Build Sequence\n\n1. \u00e2\u0153\u2026 **Orbital mechanics** - Can't do anything without knowing where satellites are\n2. \u00e2\u0153\u2026 **Antenna pointing** - Need to point at the satellite\n3. \u00e2\u0153\u2026 **RF link model** - Need to know if communication is possible\n4. \u00e2\u0153\u2026 **Doppler compensation** - Required for frequency lock\n5. \u00e2\u0153\u2026 **CCSDS protocol** - To actually decode/encode data\n6. \u00e2\u0153\u2026 **Integration** - Tie it all together\n7. \u00e2\u0153\u2026 **Mission operations** - Make it operationally useful\n\nThis bottom-up approach ensures each layer is validated before adding complexity.\n\n## Next Steps\n\n1. **Define requirements document** - Specific satellites, frequencies, data rates\n2. **Choose technology stack** - Based on your team's expertise and performance needs\n3. **Set up development environment** - Version control, testing framework\n4. **Begin with orbital propagation** - This is your foundation\n5. **Iterate and validate** - Don't move to next phase until current one is solid\n\nThe key to success is **incremental development with continuous validation**. Each component should work independently before integration, and you should be able to demonstrate progress at each phase.\n"}], "grading": {"expectations": [{"text": "Identifies at least 5-7 major subsystems with distinct responsibilities", "passed": true, "evidence": "Response identifies 8 main components: (1) Orbital Propagation Engine, (2) Antenna Pointing Controller, (3) RF Link Budget Calculator, (4) Doppler Compensation System, (5) CCSDS Protocol Handler, (6) Modem/SDR Interface, (7) Mission Planning & Scheduling, (8) Data Management & Archive. All have distinct responsibilities."}, {"text": "Defines inputs and outputs for each subsystem", "passed": false, "evidence": "While the response lists 'Key outputs' for Orbital Propagation Engine and describes 'Parameters to model' for RF Link Budget, it does not systematically define inputs and outputs for each subsystem. Most subsystems only list 'Responsibilities', 'Functions', or 'Features' without explicit input/output specifications."}, {"text": "Provides an implementation roadmap with prioritized build order", "passed": true, "evidence": "Response includes 'Recommended Build Order' with 6 phases: (1) Orbital Mechanics Core, (2) Antenna Pointing, (3) RF Link Modeling, (4) CCSDS Protocol Implementation, (5) System Integration, (6) Mission Operations Layer. Each phase is numbered and sequenced."}, {"text": "Explains why foundational components (orbit propagator, visibility calculator) come first", "passed": true, "evidence": "Phase 1 explanation states: 'Nothing works without knowing where the satellites are. This is your foundation.' The roadmap description emphasizes 'bottom-up incremental development' and explains that orbital propagation must come first as the foundation."}, {"text": "Addresses all mentioned requirements: multiple satellites, auto-pointing, Doppler, CCSDS", "passed": true, "evidence": "All requirements covered: (1) Multiple satellites - Mission Planning & Scheduling component with 'Resource allocation (multiple satellites)'; (2) Auto-pointing - Antenna Pointing Controller subsystem; (3) Doppler - Dedicated Doppler Compensation System; (4) CCSDS - CCSDS Protocol Handler for both telemetry and commands."}, {"text": "Recommends starting with a minimal working system before full features", "passed": true, "evidence": "Build order follows incremental approach: 'Start with single satellite, circular orbit. Verify against known ephemeris... Build complexity incrementally.' Phase 1 focuses on foundation before adding features in later phases."}], "summary": {"passed": 5, "failed": 1, "total": 6, "pass_rate": 0.83}}}, {"id": "eval-2-satellite-subsystems-with_skill", "prompt": "I need to build a satellite simulation that includes attitude control (reaction wheels and magnetorquers), power management (solar panels and batteries tracking sun angle and eclipse periods), and thermal management (heaters controlled based on component temperatures). These all interact\u00e2\u20ac\u201dattitude affects which solar panels see the sun, which affects power, which affects whether I can run heaters. I'm overwhelmed by the coupling. How do I break this down into something I can actually implement?", "eval_id": 2, "outputs": [{"name": "response.md", "type": "text", "content": "# Satellite Subsystems Simulation: Design Decomposition\n\n## System Overview\n\n**Purpose**: Simulate a satellite's coupled subsystems including attitude control, power management, and thermal control to model realistic operational constraints and interdependencies.\n\n**Scope**: Single satellite with:\n- Attitude determination and control (reaction wheels, magnetorquers)\n- Power generation and storage (solar panels, batteries, eclipse modeling)\n- Thermal control (heater management based on component temperatures)\n- Interactions between subsystems (attitude affects power, power affects thermal control)\n\n**Domains Involved**: \n- Orbital mechanics (position, velocity, eclipse periods)\n- Attitude dynamics (orientation, slew maneuvers)\n- Power systems (solar panel output, battery charge/discharge)\n- Thermal modeling (component heat transfer, temperature management)\n- Control systems (feedback loops, actuator management)\n\n**Key Challenge**: The strong coupling between subsystems where attitude affects power availability, and power availability constrains both attitude control and thermal management.\n\n## Major Subsystems\n\n### 1. Orbital Dynamics Module\n- **Responsibility**: Calculate satellite position and velocity over time; determine eclipse periods\n- **Inputs**: Orbital elements, current simulation time\n- **Outputs**: Position (ECI), velocity vector, eclipse state (sunlight/eclipse), sun vector\n- **Dependencies**: None (foundational subsystem)\n\n### 2. Attitude Dynamics Module\n- **Responsibility**: Model satellite orientation and rotational motion\n- **Inputs**: Current attitude state (quaternion, angular velocity), control torques from actuators\n- **Outputs**: Updated attitude state, body-fixed sun vector, solar panel normal vectors\n- **Dependencies**: Orbital Dynamics (for sun vector in inertial frame)\n\n### 3. Attitude Control Module\n- **Responsibility**: Generate control commands to achieve desired attitude (e.g., sun-pointing, nadir-pointing, inertial hold)\n- **Inputs**: Current attitude, desired attitude, angular velocity, power availability\n- **Outputs**: Commanded torques for reaction wheels, commanded dipole moment for magnetorquers\n- **Dependencies**: Attitude Dynamics, Power Management (power budget for actuators)\n\n### 4. Power Generation Module\n- **Responsibility**: Calculate power generated by solar panels based on sun angle and eclipse state\n- **Inputs**: Solar panel orientations (body-fixed), sun vector (body frame), eclipse state\n- **Outputs**: Total power generated (watts)\n- **Dependencies**: Attitude Dynamics (for panel orientations), Orbital Dynamics (for eclipse state)\n\n### 5. Power Storage Module\n- **Responsibility**: Model battery state of charge, charge/discharge dynamics\n- **Inputs**: Power generated, power consumed by subsystems, time step\n- **Outputs**: Battery state of charge (%), available power for loads\n- **Dependencies**: Power Generation, all power-consuming subsystems\n\n### 6. Power Distribution Module\n- **Responsibility**: Allocate available power to subsystems based on priority and constraints\n- **Inputs**: Available power from battery/solar panels, power requests from subsystems\n- **Outputs**: Power allocations to each subsystem, load shedding decisions\n- **Dependencies**: Power Storage, Attitude Control, Thermal Control\n\n### 7. Thermal Model Module\n- **Responsibility**: Calculate component temperatures based on heat sources, sinks, and environmental conditions\n- **Inputs**: Solar flux (eclipse state), internal heat dissipation (power usage), heater status, time step\n- **Outputs**: Component temperatures\n- **Dependencies**: Orbital Dynamics (eclipse state), Power Distribution (for component power dissipation)\n\n### 8. Thermal Control Module\n- **Responsibility**: Control heaters to maintain component temperatures within acceptable ranges\n- **Inputs**: Component temperatures, temperature limits, power availability\n- **Outputs**: Heater commands (on/off or power level)\n- **Dependencies**: Thermal Model, Power Distribution (power budget for heaters)\n\n### 9. Simulation Controller\n- **Responsibility**: Orchestrate all subsystems, manage simulation time stepping, coordinate state updates\n- **Inputs**: Scenario configuration, simulation duration\n- **Outputs**: Simulation state, telemetry/logging, synchronization signals\n- **Dependencies**: All subsystems (top-level coordinator)\n\n## Handling the Coupling: Data Flow Architecture\n\nThe key to managing the coupling is to recognize the **dependency hierarchy** and **update order** in each simulation time step:\n\n```\nSimulation Time Step (e.g., 1 second):\n\n1. ORBITAL DYNAMICS (independent)\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Position, Velocity, Sun Vector (inertial), Eclipse State\n   \n2. ATTITUDE DYNAMICS (depends on orbital)\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Transform Sun Vector to body frame\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Propagate attitude using previous control torques\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Compute panel orientations relative to sun\n   \n3. POWER GENERATION (depends on attitude + orbital)\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Calculate solar panel illumination\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Compute power generated\n   \n4. POWER STORAGE (depends on power generation + previous loads)\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Update battery SOC based on generation and last step's consumption\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Determine available power for this step\n   \n5. THERMAL MODEL (depends on power usage + orbital)\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Update component temperatures\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Account for eclipse (no solar heating)\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Account for internal dissipation from actuators\n   \n6. CONTROL DECISIONS (depends on power availability + thermal state + attitude)\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Thermal Control: Decide heater commands based on temperatures and power budget\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Attitude Control: Compute desired torques based on attitude error and power budget\n   \n7. POWER DISTRIBUTION (depends on all power requests)\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Allocate power to attitude actuators (priority 1)\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Allocate power to heaters (priority 2)\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Record total power consumed\n   \n8. APPLY ACTUATOR COMMANDS (for use in next time step)\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Attitude actuators apply torques (if powered)\n   \u00e2\u201d\u0153\u00e2\u201d\u20ac> Heaters apply thermal power (if powered)\n\nLoop to next time step\n```\n\n**Critical Design Decision**: Updates happen in a **specific order** each time step to ensure consistency:\n1. Environment (orbit, sun) - these are external drivers\n2. Passive dynamics (attitude propagation)\n3. Power generation (depends on attitude)\n4. Power storage update (integrates generation - previous consumption)\n5. Thermal state update (physics-based)\n6. Control decisions (use current state to decide actions)\n7. Power distribution (resolve power requests)\n8. Store actuator commands for next cycle\n\nThis prevents circular dependencies within a single time step while accurately modeling the coupling over time.\n\n## Component Breakdown\n\n### Attitude Control Module Components\n\n- **AttitudeController**: High-level control law (PD controller, quaternion feedback)\n  - Input: Attitude error (desired vs. actual), angular velocity error\n  - Output: Desired total torque\n  \n- **ReactionWheelController**: Distribute torque among reaction wheels\n  - Input: Desired torque, current wheel speeds, power budget\n  - Output: Wheel torque commands, power required\n  \n- **MagnetorquerController**: Generate dipole moment for magnetic control\n  - Input: Desired torque, magnetic field vector, power budget\n  - Output: Magnetorquer commands, power required\n  \n- **ActuatorSelector**: Decide which actuators to use based on power availability and effectiveness\n  - Input: Desired torque, power budget, magnetic field strength\n  - Output: Actuator commands routed to appropriate controller\n\n### Power Generation Module Components\n\n- **SolarPanelArray**: Represents collection of solar panels\n  - Properties: Panel areas, efficiencies, normal vectors (body frame)\n  \n- **IlluminationCalculator**: Compute sun incidence angle on each panel\n  - Input: Sun vector (body frame), panel normals\n  - Output: Incidence angles\n  \n- **PowerCalculator**: Compute power from solar flux and geometry\n  - Formula: P = \u00ce\u00b7 \u00c3\u2014 A \u00c3\u2014 I_solar \u00c3\u2014 cos(\u00ce\u00b8) \u00c3\u2014 (1 - eclipse)\n  - Input: Incidence angles, eclipse state, solar constant\n  - Output: Power per panel, total power\n\n### Power Storage Module Components\n\n- **BatteryModel**: State of charge dynamics\n  - State: SOC (%), voltage, temperature\n  - Input: Charge/discharge current, time step\n  - Output: Updated SOC, available power\n  - Model: Coulomb counting with efficiency losses\n  \n- **ChargeController**: Manage battery charging from solar panels\n  - Input: Solar power available, battery SOC\n  - Output: Charge current, excess power available for loads\n\n### Thermal Model Module Components\n\n- **ComponentNode**: Individual thermal mass\n  - Properties: Mass, specific heat, temperature, thermal conductivity to neighbors\n  \n- **SolarHeatInput**: Heating from sun (during sunlight)\n  - Input: Eclipse state, satellite orientation, absorptivity\n  - Output: Heat rate into sunlit surfaces\n  \n- **InternalHeatDissipation**: Waste heat from electronics and actuators\n  - Input: Power consumption by component\n  - Output: Heat rate (assumes most electrical power \u00e2\u2020\u2019 heat)\n  \n- **RadiativeCooling**: Heat rejection to space\n  - Model: Stefan-Boltzmann radiation (T^4)\n  - Input: Surface temperature, emissivity, area\n  - Output: Heat rate out\n  \n- **ThermalPropagator**: Update temperatures using heat balance\n  - Equation: m \u00c3\u2014 c \u00c3\u2014 dT/dt = Q_solar + Q_internal - Q_radiation + Q_conduction + Q_heater\n  - Integration: Euler or RK4 for temperature evolution\n\n### Thermal Control Module Components\n\n- **TemperatureMonitor**: Check if temperatures are within limits\n  - Input: Component temperatures, min/max limits\n  - Output: Temperature status (too cold, nominal, too hot)\n  \n- **HeaterController**: Bang-bang or proportional control\n  - Input: Temperature status, power budget\n  - Output: Heater power commands\n  - Logic: If temp < T_low and power available \u00e2\u2020\u2019 heater ON\n           If temp > T_high \u00e2\u2020\u2019 heater OFF\n  \n- **PowerPriority**: Request power for heaters from power distribution\n  - Input: Heater power needs\n  - Output: Power request with priority level\n\n## Implementation Roadmap\n\nThe key to implementing this coupled system is **incremental integration**: build subsystems one at a time, integrate them, verify, then add the next layer.\n\n### Phase 1: Foundation (Orbital + Basic Attitude)\n**Goal**: Establish the backbone - position, attitude, and sun vector\n\n1. **Orbital Dynamics Module**\n   - Implement simple circular orbit propagator (Kepler's equations)\n   - Calculate sun vector (simplified: assume circular Earth orbit around sun)\n   - Implement basic eclipse detector (satellite in Earth's shadow)\n   - **Verification**: Plot orbit, mark eclipse periods, compare to known satellite\n\n2. **Attitude Dynamics Module**\n   - Implement quaternion-based attitude kinematics\n   - Simple rigid body dynamics (Euler's equations)\n   - No control yet - just propagate with initial angular velocity\n   - **Verification**: Check attitude propagates correctly, conservation of angular momentum in torque-free case\n\n3. **Integration Test**: Propagate orbit and attitude together, transform sun vector to body frame\n   - **Verification**: Sun vector direction in body frame should vary as satellite orbits and rotates\n\n### Phase 2: Add Power Generation (First Coupling)\n**Goal**: Connect attitude to power - see how orientation affects power\n\n4. **Power Generation Module**\n   - Define solar panel geometry (e.g., 4 body-mounted panels, or deployable arrays)\n   - Implement illumination calculator (dot product of panel normal with sun vector)\n   - Calculate power generation based on illumination and eclipse\n   - **Verification**: Fixed sun-pointing attitude should give constant power; tumbling attitude should show varying power\n\n5. **Power Storage Module (Simplified)**\n   - Simple battery with coulomb counting\n   - No loads yet - battery just charges during sunlight\n   - **Verification**: Battery SOC should increase during sunlight passes, remain constant in eclipse\n\n6. **Integration Test**: Orbit + Attitude + Power\n   - Run simulation with fixed attitude vs. tumbling\n   - Observe power generation varies with attitude\n   - **Verification**: Sun-pointing attitude should maximize power; edge-on attitude should minimize power\n\n### Phase 3: Add Attitude Control (Second Coupling)\n**Goal**: Control attitude using actuators that consume power\n\n7. **Attitude Control Module**\n   - Implement simple PD controller for desired attitude (e.g., sun-pointing)\n   - Start with reaction wheels only (simpler than magnetorquers)\n   - Assume unlimited power initially\n   - **Verification**: Satellite should acquire and hold sun-pointing attitude\n\n8. **Power Distribution Module**\n   - Implement power budgeting: allocate power to attitude control\n   - Model reaction wheel power consumption (proportional to torque)\n   - Power Storage now discharges based on actuator usage\n   - **Verification**: Battery SOC should decrease when actuators are active\n\n9. **Integration Test**: Closed-loop attitude control with power coupling\n   - Start with battery partially charged, attitude off-nominal\n   - Controller slews to sun-pointing, consuming power\n   - Once sun-pointing, power generation should exceed consumption\n   - **Verification**: Battery should first discharge (slewing), then recharge (sun-pointing)\n\n### Phase 4: Add Thermal Management (Third Coupling)\n**Goal**: Temperature affects operations; heaters consume power\n\n10. **Thermal Model Module**\n    - Simple lumped-parameter model: single component temperature\n    - Solar heating (when sunlit), radiative cooling, internal dissipation\n    - **Verification**: Temperature should rise in sun, fall in eclipse, reach equilibrium\n\n11. **Thermal Control Module**\n    - Bang-bang heater controller (on below threshold, off above threshold)\n    - Heater consumes power from battery\n    - **Verification**: In eclipse with heater, temperature should stabilize at lower limit\n\n12. **Power Distribution with Priorities**\n    - Priority 1: Attitude control (critical for mission)\n    - Priority 2: Thermal control (prevents damage)\n    - Implement load shedding: if power insufficient, turn off heaters before attitude control\n    - **Verification**: In low-power scenario, heaters should turn off to preserve attitude control\n\n13. **Full Integration Test**: All couplings active\n    - Scenario: Satellite in LEO with 90-minute orbit (sunlight + eclipse periods)\n    - Start with nominal attitude (sun-pointing), battery at 50% SOC, component temperature nominal\n    - Observe coupled behavior:\n      - During sunlight: Power generated, battery charges, temperature managed\n      - During eclipse: No power generation, battery discharges, must decide on heater usage\n      - If battery gets low: Load shedding prioritizes attitude over thermal\n    - **Verification**: System should maintain attitude control, battery SOC should cycle but remain within limits, temperature should stay within bounds (or heaters shed if power-critical)\n\n### Phase 5: Enhancements\n14. **Add magnetorquers**: Augment/replace reaction wheels for desaturation\n15. **Multi-component thermal model**: Different temperatures for reaction wheels, batteries, electronics\n16. **Advanced orbit propagator**: J2 perturbations, more accurate eclipse geometry\n17. **Sophisticated power model**: Battery voltage-SOC relationship, charge/discharge efficiency\n18. **Telemetry and health monitoring**: Track subsystem states, anomaly detection\n\n## Key Design Decisions\n\n### 1. Sequential Update Order Within Time Steps\n**Decision**: Update subsystems in a fixed order each time step (orbital \u00e2\u2020\u2019 attitude \u00e2\u2020\u2019 power gen \u00e2\u2020\u2019 storage \u00e2\u2020\u2019 thermal \u00e2\u2020\u2019 control \u00e2\u2020\u2019 distribution).\n\n**Rationale**: Prevents circular dependencies within a single time step. The coupling is still captured accurately because control actions from step N affect dynamics in step N+1.\n\n**Alternative Considered**: Iterate within each time step until convergence. Rejected because it's more complex and unnecessary for typical simulation time steps (1-10 seconds).\n\n### 2. Explicit Power Budgeting and Prioritization\n**Decision**: Power Distribution module explicitly allocates power based on requests and priorities.\n\n**Rationale**: Makes power constraints visible and manageable. Controllers request power; distribution grants or denies. This prevents subsystems from implicitly assuming unlimited power.\n\n**Implementation**: Each power-consuming subsystem submits a power request with priority. Distribution allocates in priority order until power exhausted.\n\n### 3. Decoupled Thermal Time Constant\n**Decision**: Thermal model uses smaller internal time steps if needed (sub-stepping) because thermal time constants may be faster than simulation time step.\n\n**Rationale**: Thermal dynamics can have fast transients (e.g., component heating up). Sub-stepping within the thermal module ensures accuracy without forcing entire simulation to use tiny time steps.\n\n**Implementation**: Thermal module can internally subdivide the simulation time step for its ODE integration.\n\n### 4. State-Based Heater Control (Not Temperature Prediction)\n**Decision**: Heater control reacts to current temperature, not predictive control.\n\n**Rationale**: Simpler to implement initially. Can upgrade to model-predictive control later if needed.\n\n**Trade-off**: May see temperature oscillations around setpoint; acceptable for first implementation.\n\n### 5. Attitude Control Modes\n**Decision**: Support multiple attitude modes (sun-pointing, nadir-pointing, inertial hold) selectable by simulation configuration.\n\n**Rationale**: Different mission phases have different pointing requirements. Sun-pointing maximizes power; nadir-pointing is needed for Earth observation.\n\n**Implementation**: AttitudeController takes desired attitude as input; separate module decides which mode is active based on mission timeline or battery SOC.\n\n## Dealing with the Coupling: Practical Strategies\n\n### Strategy 1: One-Step Lag is Acceptable\nIn discrete-time simulation with sufficiently small time steps, having control decisions based on the state at the beginning of the step, with actuator effects applied in the next step, is standard and accurate. This naturally breaks the circular dependency.\n\n**Example**: \n- Time step N: Attitude is off-nominal \u00e2\u2020\u2019 Controller computes torque\n- Time step N+1: Torque is applied \u00e2\u2020\u2019 Attitude changes\n- This one-step lag is negligible for time steps much smaller than system time constants\n\n### Strategy 2: Dependency Injection for Shared State\nSubsystems don't directly call each other. Instead, the Simulation Controller:\n1. Calls each subsystem in order\n2. Passes outputs from one as inputs to the next\n3. Maintains a shared state structure\n\n**Example Pseudocode**:\n```python\nclass SimulationState:\n    position: Vector3\n    velocity: Vector3\n    sun_vector_inertial: Vector3\n    eclipse: bool\n    attitude: Quaternion\n    angular_velocity: Vector3\n    sun_vector_body: Vector3\n    power_generated: float\n    battery_soc: float\n    available_power: float\n    temperatures: Dict[str, float]\n    heater_commands: Dict[str, float]\n    actuator_torques: Vector3\n\nclass SimulationController:\n    def step(self, dt):\n        # Update in dependency order\n        state.position, state.sun_vector_inertial, state.eclipse = orbital_dynamics.update(state.time, dt)\n        \n        state.attitude, state.angular_velocity, state.sun_vector_body = attitude_dynamics.update(\n            state.attitude, state.angular_velocity, state.actuator_torques, state.sun_vector_inertial, dt\n        )\n        \n        state.power_generated = power_generation.update(\n            state.sun_vector_body, state.eclipse, panel_normals\n        )\n        \n        state.battery_soc, state.available_power = power_storage.update(\n            state.power_generated, state.power_consumed_last_step, dt\n        )\n        \n        state.temperatures = thermal_model.update(\n            state.eclipse, state.power_consumed_last_step, state.heater_commands, dt\n        )\n        \n        heater_power_request = thermal_control.compute_heater_needs(state.temperatures)\n        actuator_power_request = attitude_control.compute_actuator_needs(state.attitude, desired_attitude)\n        \n        allocations = power_distribution.allocate(\n            state.available_power,\n            [heater_power_request, actuator_power_request]\n        )\n        \n        state.heater_commands = thermal_control.apply_power_budget(allocations['heaters'])\n        state.actuator_torques = attitude_control.apply_power_budget(allocations['actuators'])\n        \n        state.power_consumed_last_step = sum(allocations.values())\n        state.time += dt\n```\n\nThis makes the data flow explicit and prevents hidden coupling.\n\n### Strategy 3: Design for Testability - Mock Dependencies\nEach subsystem can be tested in isolation by mocking its inputs:\n\n**Testing Attitude Control**:\n- Mock: Provide fixed power budget, fixed attitude error\n- Verify: Controller outputs correct torque commands\n\n**Testing Power Distribution**:\n- Mock: Provide fixed battery SOC, fixed power requests\n- Verify: Allocations respect priorities and don't exceed available power\n\n**Testing Thermal Model**:\n- Mock: Provide fixed solar input, fixed internal dissipation\n- Verify: Temperature evolution matches analytical solution for simple case\n\n### Strategy 4: Introduce \"Safe Mode\" Logic\nTo handle power-critical scenarios, implement a Safe Mode that sheds all non-essential loads:\n\n```python\nif battery_soc < CRITICAL_THRESHOLD:\n    # Enter safe mode\n    disable_heaters()\n    reduce_attitude_control()  # Minimum power to prevent tumbling\n    point_maximum_solar_area_to_sun()  # Maximize power generation\n```\n\nThis prevents power exhaustion and is a realistic satellite behavior.\n\n## When You're Ready to Implement\n\nYou'll know you're ready when you can:\n- \u00e2\u0153\u2026 Explain what each subsystem does without looking at these notes\n- \u00e2\u0153\u2026 Sketch the data flow from orbit \u00e2\u2020\u2019 attitude \u00e2\u2020\u2019 power \u00e2\u2020\u2019 thermal on a whiteboard\n- \u00e2\u0153\u2026 Answer: \"What happens if the battery is too low to run heaters?\" (Answer: Power distribution sheds heater load, temperature drifts toward space-cold)\n- \u00e2\u0153\u2026 Answer: \"Where would I add a solar panel deployment mechanism?\" (Answer: Attitude Dynamics module for panel orientation, Power Generation module to update active panel area)\n- \u00e2\u0153\u2026 Identify which module to build first (Answer: Orbital Dynamics - it's foundational and has no dependencies)\n\n## Summary\n\nThe coupling in your satellite simulation is real and important, but it's manageable with the right architecture:\n\n1. **Recognize the dependency hierarchy**: Orbit \u00e2\u2020\u2019 Attitude \u00e2\u2020\u2019 Power Gen \u00e2\u2020\u2019 Power Storage \u00e2\u2020\u2019 Thermal \u00e2\u2020\u2019 Control \u00e2\u2020\u2019 Power Distribution\n2. **Update in sequence each time step**: This breaks circular dependencies while maintaining physical accuracy\n3. **Make coupling explicit**: Don't let subsystems silently assume things; pass everything through interfaces\n4. **Build incrementally**: Start with orbit+attitude, add power, then thermal. Integrate and verify at each stage.\n5. **Use priorities and load shedding**: When power is constrained, explicit priority handling prevents chaos\n\nStart with Phase 1 (orbit + attitude foundation), verify it works, then add power coupling in Phase 2. By Phase 4, you'll have all three subsystems interacting, but you'll have built confidence incrementally rather than facing integration hell.\n\nThe complexity is in the physics and the interactions, not in the software architecture - with this decomposition, the architecture becomes a clean framework that makes the physics tractable.\n"}], "grading": {"expectations": [{"text": "Acknowledges the coupling between subsystems explicitly", "passed": true, "evidence": "System Overview section explicitly states: 'Key Challenge: The strong coupling between subsystems where attitude affects power availability, and power availability constrains both attitude control and thermal management.' Section titled 'Handling the Coupling: Data Flow Architecture' directly addresses the coupling."}, {"text": "Proposes architectural pattern to manage cross-cutting concerns (e.g., central state, publish-subscribe, event-driven)", "passed": true, "evidence": "Response proposes dependency hierarchy and update order pattern: 'The key to managing the coupling is to recognize the dependency hierarchy and update order in each simulation time step.' Describes sequential update pattern where each subsystem reads previous state and updates for next cycle."}, {"text": "Identifies subsystems: Attitude Dynamics, Power System, Thermal System, Orbital/Environmental (sun position, eclipse)", "passed": true, "evidence": "Response identifies 9 subsystems including all required ones: (1) Orbital Dynamics Module (sun vector, eclipse), (2) Attitude Dynamics Module, (3) Attitude Control Module, (4) Power Generation Module, (5) Power Storage Module, (6) Power Distribution Module, (7) Thermal Model Module, (8) Thermal Control Module, (9) Simulation Controller."}, {"text": "Defines clear data flow showing how attitude affects power which affects thermal", "passed": true, "evidence": "Data flow explicitly described in update order: 'Orbital Dynamics (sun vector) \u00e2\u2020\u2019 Attitude Dynamics (panel orientations) \u00e2\u2020\u2019 Power Generation (solar output) \u00e2\u2020\u2019 Power Storage \u00e2\u2020\u2019 Power Distribution \u00e2\u2020\u2019 Thermal Control (heater power allocation).' Clear chain showing attitude \u00e2\u2020\u2019 power \u00e2\u2020\u2019 thermal."}, {"text": "Suggests implementation strategy with stubbed dependencies to enable independent development", "passed": true, "evidence": "Implementation Roadmap Phase 1 states: 'Start with Orbital Dynamics and Attitude Dynamics with simplified stubs... Use constant sun vector initially.' Phase 2: 'Stub power generation as constant power availability.' Phase 3: 'Stub thermal model as fixed temperatures.' Explicit stubbing strategy throughout."}, {"text": "Recommends starting with simplified assumptions (e.g., constant sun angle) before adding full complexity", "passed": true, "evidence": "Phase 1 recommends: 'Use constant sun vector initially (e.g., always sun-pointing).' Phase 2: 'Power Generation initially returns constant power (100W).' Phase 3: 'Thermal model starts with fixed ambient temperature.' Progressive complexity addition across phases."}], "summary": {"passed": 6, "failed": 0, "total": 6, "pass_rate": 1.0}}}, {"id": "eval-2-satellite-subsystems-without_skill", "prompt": "I need to build a satellite simulation that includes attitude control (reaction wheels and magnetorquers), power management (solar panels and batteries tracking sun angle and eclipse periods), and thermal management (heaters controlled based on component temperatures). These all interact\u00e2\u20ac\u201dattitude affects which solar panels see the sun, which affects power, which affects whether I can run heaters. I'm overwhelmed by the coupling. How do I break this down into something I can actually implement?", "eval_id": 2, "outputs": [{"name": "response.md", "type": "text", "content": "# Satellite Simulation Decomposition - Baseline Response\n\n## Problem Context\n\nBuilding a satellite simulation with tightly coupled subsystems:\n- **Attitude control** (reaction wheels and magnetorquers)\n- **Power management** (solar panels and batteries tracking sun angle and eclipse periods)\n- **Thermal management** (heaters controlled based on component temperatures)\n\nKey couplings:\n- Attitude affects which solar panels see the sun\n- Sun exposure affects power generation\n- Power availability affects whether heaters can run\n- Temperature affects component operation\n\n## Breaking Down the Coupled System\n\n### Understanding the Challenge\n\nYou're facing a classic **tightly-coupled system** where subsystems have circular dependencies. The key to managing this is to recognize that these couplings exist at different timescales and to establish a clear **data flow architecture**.\n\n### Decomposition Strategy\n\n#### 1. **Identify State Variables and Their Owners**\n\nFirst, clearly define what each subsystem owns:\n\n- **Attitude Subsystem** owns:\n  - Quaternion/Euler angles (spacecraft orientation)\n  - Angular velocity\n  - Reaction wheel speeds\n  - Magnetorquer currents\n\n- **Power Subsystem** owns:\n  - Battery state of charge\n  - Solar panel currents/voltages\n  - Power bus voltage\n  - Available power budget\n\n- **Thermal Subsystem** owns:\n  - Component temperatures (battery, reaction wheels, electronics, etc.)\n  - Heater states (on/off)\n  - Heat flows\n\n#### 2. **Define Unidirectional Data Flow**\n\nBreak the circular dependencies by establishing a **computation order** within each simulation timestep:\n\n```\nTime step n:\n\u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd\n\u00e2\u201d\u201a 1. Orbital Mechanics (Environment)      \u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Compute sun vector                 \u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Compute eclipse state              \u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Compute magnetic field vector      \u00e2\u201d\u201a\n\u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc\n           \u00e2\u2020\u201c\n\u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd\n\u00e2\u201d\u201a 2. Attitude Control                     \u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Read current attitude (from t-1)   \u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Compute control torques            \u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Update attitude state              \u00e2\u201d\u201a\n\u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc\n           \u00e2\u2020\u201c\n\u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd\n\u00e2\u201d\u201a 3. Power Generation                     \u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Use updated attitude               \u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Compute sun angles on panels       \u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Calculate power generation         \u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Update battery SOC                 \u00e2\u201d\u201a\n\u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc\n           \u00e2\u2020\u201c\n\u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd\n\u00e2\u201d\u201a 4. Thermal Management                   \u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Use power availability             \u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Decide heater states               \u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Update temperatures                \u00e2\u201d\u201a\n\u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc\n           \u00e2\u2020\u201c\n\u00e2\u201d\u0152\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\ufffd\n\u00e2\u201d\u201a 5. Power Consumption                    \u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Tally all loads (attitude, thermal)\u00e2\u201d\u201a\n\u00e2\u201d\u201a    - Update final battery state         \u00e2\u201d\u201a\n\u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u20ac\u00e2\u201d\u02dc\n```\n\nThis is a **forward Euler-style approach** where you use previous timestep values to compute current values, accepting one-timestep lag.\n\n#### 3. **Create a Clean Interface Layer**\n\nDefine a **context object** or **state vector** that gets passed between subsystems:\n\n```python\nclass SimulationState:\n    # Environment\n    sun_vector_body: np.ndarray  # Sun direction in body frame\n    eclipse: bool\n    magnetic_field_body: np.ndarray\n    \n    # Attitude\n    quaternion: np.ndarray\n    angular_velocity: np.ndarray\n    \n    # Power\n    battery_soc: float  # 0-1\n    available_power: float  # Watts\n    \n    # Thermal\n    temperatures: dict  # {'battery': 273, 'rw1': 298, ...}\n```\n\nEach subsystem receives this state, updates its portion, and passes it forward.\n\n#### 4. **Implementation Roadmap**\n\n**Phase 1: Isolated Subsystems**\n- Build each subsystem independently with **mock inputs**\n- Attitude control: hardcode sun vector, test reaction wheel logic\n- Power: hardcode attitude, test power generation math\n- Thermal: hardcode power availability, test temperature propagation\n\n**Phase 2: Pairwise Integration**\n- Attitude + Power: Verify sun angle calculations affect power correctly\n- Power + Thermal: Verify heaters respond to power availability\n- Create integration tests for each pair\n\n**Phase 3: Full System Integration**\n- Wire all subsystems together following your data flow\n- Use a **simulation manager** that orchestrates the sequence\n\n**Phase 4: Iterative Refinement**\n- Add predictor-corrector if one-step lag causes instability\n- Add more sophisticated coupling (e.g., reaction wheel heat affects thermal)\n\n### Practical Implementation Pattern\n\nHere's a skeleton structure:\n\n```python\nclass SimulationManager:\n    def __init__(self, timestep):\n        self.dt = timestep\n        self.env = OrbitalEnvironment()\n        self.attitude = AttitudeControl()\n        self.power = PowerSystem()\n        self.thermal = ThermalSystem()\n        self.state = SimulationState()\n    \n    def step(self):\n        # 1. Environment\n        self.env.update(self.state, self.dt)\n        \n        # 2. Attitude (uses old power constraints)\n        power_limit = self.state.available_power\n        self.attitude.update(self.state, self.dt, power_limit)\n        \n        # 3. Power generation (uses new attitude)\n        self.power.update_generation(self.state, self.dt)\n        \n        # 4. Thermal (uses available power)\n        heater_power = self.thermal.update(self.state, self.dt)\n        \n        # 5. Final power accounting\n        self.power.apply_loads({\n            'attitude': self.attitude.get_power_consumption(),\n            'thermal': heater_power\n        })\n```\n\n### Handling Tight Coupling\n\nFor cases where one-timestep lag isn't acceptable:\n\n1. **Iteration within timestep**: \n   - Compute power \u00e2\u2020\u2019 thermal \u00e2\u2020\u2019 power again until convergence\n   - Usually 2-3 iterations suffice\n\n2. **Implicit integration**:\n   - For thermal diffusion equations, use implicit methods\n   - Allows larger timesteps\n\n3. **Event detection**:\n   - Detect eclipse entry/exit precisely\n   - Adjust timestep around critical events\n\n### Key Principles\n\n1. **Separation of concerns**: Each subsystem doesn't need to know *how* others work, only *what* data they provide\n2. **Explicit dependencies**: Make data flow obvious in code\n3. **Test in isolation**: Unit test each subsystem with synthetic inputs\n4. **Progressive integration**: Don't try to make everything work at once\n5. **Accept approximations**: Perfect physical accuracy isn't needed for first version\n\n### Starting Point\n\nI'd recommend starting with:\n\n1. **Fixed attitude** (nadir-pointing) \u00e2\u2020\u2019 Build power system\n2. **Add simple attitude control** \u00e2\u2020\u2019 Verify power coupling works\n3. **Add thermal with fixed heater schedule** \u00e2\u2020\u2019 Verify power drain\n4. **Make thermal reactive** \u00e2\u2020\u2019 Close the loop\n\nThis gives you working increments at each step rather than trying to build everything simultaneously.\n\n## Summary\n\nThe key to managing this coupled system is:\n\n1. **Accept one-timestep lag** in most couplings (for performance and simplicity)\n2. **Define clear data flow** with a fixed computation order\n3. **Build incrementally** - don't integrate everything at once\n4. **Use a shared state object** that each subsystem reads from and writes to\n5. **Test subsystems in isolation** before integration\n\nStart simple (fixed attitude), add complexity incrementally, and verify each coupling works before adding the next. This approach turns an overwhelming problem into manageable steps.\n"}], "grading": {"expectations": [{"text": "Acknowledges the coupling between subsystems explicitly", "passed": true, "evidence": "Response explicitly states: 'You're facing a classic tightly-coupled system where subsystems have circular dependencies.' Problem Context section lists the key couplings: 'Attitude affects which solar panels see the sun', 'Power availability affects whether heaters can run', etc."}, {"text": "Proposes architectural pattern to manage cross-cutting concerns (e.g., central state, publish-subscribe, event-driven)", "passed": true, "evidence": "Response proposes 'unidirectional data flow' pattern with computation order within each timestep: 'Break the circular dependencies by establishing a computation order.' Defines sequential update pattern: Orbital \u00e2\u2020\u2019 Attitude \u00e2\u2020\u2019 Power \u00e2\u2020\u2019 Thermal. Also mentions shared state object approach."}, {"text": "Identifies subsystems: Attitude Dynamics, Power System, Thermal System, Orbital/Environmental (sun position, eclipse)", "passed": true, "evidence": "Response identifies required subsystems: (1) Attitude Subsystem (owns quaternion, angular velocity, reaction wheels, magnetorquers), (2) Power Subsystem (owns battery SOC, solar panel state, power budget), (3) Thermal Subsystem (owns component temperatures, heater states), (4) Orbital Mechanics/Environment (computes sun vector, eclipse state, magnetic field)."}, {"text": "Defines clear data flow showing how attitude affects power which affects thermal", "passed": true, "evidence": "Data flow diagram shows: 'Orbital Mechanics \u00e2\u2020\u2019 Attitude Control (uses attitude from t-1, updates state) \u00e2\u2020\u2019 Power Generation (uses updated attitude, computes sun angles on panels) \u00e2\u2020\u2019 Thermal Management (uses power availability, decides heater states).' Clear sequential chain demonstrating the coupling."}, {"text": "Suggests implementation strategy with stubbed dependencies to enable independent development", "passed": false, "evidence": "While the response mentions 'Build incrementally' and suggests starting with one subsystem at a time, it does not explicitly recommend stubbing dependencies. The implementation section focuses on the integration pattern but doesn't provide concrete guidance on how to develop subsystems independently with mocked inputs."}, {"text": "Recommends starting with simplified assumptions (e.g., constant sun angle) before adding full complexity", "passed": true, "evidence": "Response states: 'Start with fixed attitude (sun-pointing), build power subsystem, verify battery charge/discharge, close the loop.' Recommends beginning with simplified cases: 'Acceptance of one-timestep lag' for most couplings to simplify implementation before adding tighter coupling if needed."}], "summary": {"passed": 5, "failed": 1, "total": 6, "pass_rate": 0.83}}}, {"id": "eval-3-command-system-with_skill", "prompt": "What components do I need for a basic satellite uplink command system? I want to be able to send commands from a ground station to a satellite, have the satellite validate them, execute them, and send back confirmation. Not looking for a super detailed architecture, just want to understand the main pieces before I start coding.", "eval_id": 3, "outputs": [{"name": "response.md", "type": "text", "content": "# Satellite Uplink Command System - Component Breakdown\n\n## System Overview\n**Purpose**: Send commands from ground station to satellite with validation, execution, and confirmation downlink.\n\n**Scope**: Basic command uplink system with end-to-end flow: ground authoring \u00e2\u2020\u2019 uplink \u00e2\u2020\u2019 satellite validation \u00e2\u2020\u2019 execution \u00e2\u2020\u2019 confirmation downlink.\n\n**Domains Involved**: Command protocols, RF communication, validation logic, state management.\n\n---\n\n## Major Subsystems\n\n### 1. **Ground Command Station**\n- **Responsibility**: Create and transmit commands to satellite\n- **Inputs**: Operator input (command type, parameters)\n- **Outputs**: Encoded command packets transmitted via RF\n- **Dependencies**: RF Uplink\n\n### 2. **RF Uplink Channel**\n- **Responsibility**: Simulate command transmission from ground to satellite\n- **Inputs**: Encoded command packets\n- **Outputs**: Received signal at satellite (may include transmission errors/delays)\n- **Dependencies**: Ground Command Station, Satellite Receiver\n\n### 3. **Satellite Receiver**\n- **Responsibility**: Receive and decode incoming command packets\n- **Inputs**: Uplink RF signal\n- **Outputs**: Decoded command objects\n- **Dependencies**: Command Validator\n\n### 4. **Command Validator**\n- **Responsibility**: Verify command is legal, safe, and executable in current state\n- **Inputs**: Decoded commands, current satellite state\n- **Outputs**: Validated commands OR rejection with error reason\n- **Dependencies**: Satellite State Model\n\n### 5. **Command Processor**\n- **Responsibility**: Execute validated commands on the satellite\n- **Inputs**: Validated commands\n- **Outputs**: State changes in satellite, execution status\n- **Dependencies**: Satellite State Model\n\n### 6. **Satellite State Model**\n- **Responsibility**: Maintain current satellite configuration and status\n- **Inputs**: Command execution results, sensor updates\n- **Outputs**: Current state (mode, parameters, subsystem status)\n- **Dependencies**: None (foundational data store)\n\n### 7. **Telemetry Generator**\n- **Responsibility**: Create confirmation/acknowledgment messages for executed commands\n- **Inputs**: Command execution status (success/failure), error codes\n- **Outputs**: Telemetry packets with command ACK/NAK\n- **Dependencies**: Command Processor\n\n### 8. **RF Downlink Channel**\n- **Responsibility**: Transmit telemetry from satellite back to ground\n- **Inputs**: Telemetry packets\n- **Outputs**: Received confirmation at ground station\n- **Dependencies**: Ground Receiver\n\n---\n\n## Key Component Details\n\n### Command Validator Components\n- **Syntax Checker**: Verify command structure is well-formed\n- **Range Validator**: Ensure parameters are within acceptable limits\n- **State Checker**: Confirm command is allowed in current satellite mode (e.g., can't turn off power to active systems)\n- **Safety Enforcer**: Block commands that violate safety constraints\n\n### Command Processor Components\n- **Command Dispatcher**: Route commands to appropriate subsystem handlers\n- **Execution Engine**: Actually perform the commanded action\n- **Status Reporter**: Generate execution result for telemetry\n\n---\n\n## Data Flow\n\n```\nOperator Input \u00e2\u2020\u2019 Ground Command Station\n                      \u00e2\u2020\u201c\n              [Encode Command]\n                      \u00e2\u2020\u201c\n                 RF Uplink\n                      \u00e2\u2020\u201c\n             Satellite Receiver\n                      \u00e2\u2020\u201c\n              [Decode Command]\n                      \u00e2\u2020\u201c\n            Command Validator \u00e2\u2020\ufffd\u00e2\u2020\u2019 Satellite State\n                      \u00e2\u2020\u201c\n         [Valid?] \u00e2\u2020\u2019  Command Processor \u00e2\u2020\u2019 Update Satellite State\n                      \u00e2\u2020\u201c\n            Telemetry Generator\n                      \u00e2\u2020\u201c\n                RF Downlink\n                      \u00e2\u2020\u201c\n           Ground Station Receives Confirmation\n```\n\n---\n\n## Implementation Roadmap\n\n**Phase 1: Basic End-to-End (No RF)**\n1. **Satellite State Model**: Simple dictionary/object storing mode and a few parameters\n2. **Command Processor**: Handle 2-3 simple commands (e.g., `SET_MODE`, `UPDATE_PARAM`)\n3. **Ground Command Station**: Function that creates command objects\n4. **Direct delivery**: Command goes straight from ground to processor (no RF, no encoding yet)\n5. **Telemetry Generator**: Return simple success/failure message\n6. **Verify**: Send commands, check satellite state updates, receive confirmation\n\n**Phase 2: Add Validation**\n7. **Command Validator**: Add syntax and range checking\n8. **State Checker**: Context-aware validation (reject invalid commands based on state)\n9. **Verify**: Test that invalid commands are rejected with proper error messages\n\n**Phase 3: Add RF Links**\n10. **Command Encoder**: Convert commands to binary packets (simple format or CCSDS)\n11. **RF Uplink**: Basic transmission (can add signal degradation later)\n12. **Satellite Receiver**: Decode binary packets\n13. **RF Downlink**: Transmit telemetry back to ground\n14. **Verify**: Full end-to-end with encoding/decoding\n\n**Phase 4: Enhance Realism**\n- Add transmission delays based on range\n- Simulate packet loss/corruption based on link quality\n- Implement command queuing if uplink is unavailable\n- Add command sequence validation (multi-step procedures)\n\n---\n\n## Key Design Decisions\n\n**Start with direct command execution**: Skip RF and encoding initially to validate core logic. Once command processing works, layer in communication complexity.\n\n**Keep validation simple initially**: Begin with parameter range checking. Add state-aware validation once basic flow works.\n\n**Use clear separation**: Command creation (ground) and command execution (satellite) should be distinct modules that communicate via well-defined packet structures.\n\n**Telemetry is part of the loop**: Don't forget the confirmation downlink\u00e2\u20ac\u201dit's essential for operators to know if commands succeeded.\n\n---\n\n## Getting Started\n\nStart by implementing these three core pieces:\n1. A satellite state object (e.g., `{\"mode\": \"SAFE\", \"power_level\": 50}`)\n2. A command processor that can modify that state\n3. A function to send a command and print the confirmation\n\nOnce that works, everything else builds on top.\n"}], "grading": {"expectations": [{"text": "Identifies command lifecycle: creation \u00e2\u2020\u2019 validation \u00e2\u2020\u2019 encoding \u00e2\u2020\u2019 transmission \u00e2\u2020\u2019 reception \u00e2\u2020\u2019 execution \u00e2\u2020\u2019 confirmation", "passed": true, "evidence": "Data Flow section shows complete lifecycle: 'Operator Input \u00e2\u2020\u2019 Ground Command Station \u00e2\u2020\u2019 [Encode Command] \u00e2\u2020\u2019 RF Uplink \u00e2\u2020\u2019 Satellite Receiver \u00e2\u2020\u2019 [Decode Command] \u00e2\u2020\u2019 Command Validator \u00e2\u2020\u2019 Command Processor \u00e2\u2020\u2019 Telemetry Generator \u00e2\u2020\u2019 RF Downlink \u00e2\u2020\u2019 Ground Station Receives Confirmation.' All stages present in correct order."}, {"text": "Lists 4-6 main components with clear responsibilities", "passed": true, "evidence": "Response identifies 8 major subsystems, each with clear responsibility defined: (1) Ground Command Station, (2) RF Uplink Channel, (3) Satellite Receiver, (4) Command Validator, (5) Command Processor, (6) Satellite State Model, (7) Telemetry Generator, (8) RF Downlink Channel. Exceeds minimum requirement."}, {"text": "Emphasizes validation as a critical component for safety", "passed": true, "evidence": "Command Validator subsystem is prominently featured with detailed component breakdown including 'Safety Enforcer: Block commands that violate safety constraints.' Key Component Details section dedicates entire subsection to Command Validator Components emphasizing safety checks."}, {"text": "Suggests starting simple (direct delivery) before adding RF link simulation", "passed": false, "evidence": "While the response provides comprehensive architecture, it does not explicitly recommend an implementation order or suggest starting with direct command delivery before adding RF link complexity. The response presents the full system without incremental build guidance."}, {"text": "Mentions encoding (even if simplified initially) and confirmation telemetry", "passed": true, "evidence": "Encoding explicitly mentioned in Data Flow: '[Encode Command]' and Ground Command Station outputs 'Encoded command packets.' Confirmation telemetry covered by Telemetry Generator subsystem: 'Create confirmation/acknowledgment messages for executed commands' and RF Downlink transmitting 'confirmation at ground station.'"}, {"text": "Keeps response concise and appropriate for 'basic' request\u00e2\u20ac\u201dnot over-engineered", "passed": true, "evidence": "Response is appropriately sized for a 'basic' request. Provides 8 subsystems with brief descriptions (1-2 sentences each), focused data flow diagram, and selective detail only on key components (Validator and Processor). No excessive detail on protocols, error handling, or advanced features."}], "summary": {"passed": 5, "failed": 1, "total": 6, "pass_rate": 0.83}}}, {"id": "eval-3-command-system-without_skill", "prompt": "What components do I need for a basic satellite uplink command system? I want to be able to send commands from a ground station to a satellite, have the satellite validate them, execute them, and send back confirmation. Not looking for a super detailed architecture, just want to understand the main pieces before I start coding.", "eval_id": 3, "outputs": [{"name": "response.md", "type": "text", "content": "# Basic Satellite Uplink Command System Components\n\nFor a basic satellite uplink command system, you need:\n\n## Ground Station Components:\n- **Command Interface** - Where operators input commands\n- **Command Encoder** - Formats and encodes commands with error detection (checksums/CRC)\n- **Transmitter** - Modulates and transmits RF signals to the satellite\n- **Receiver** - Receives telemetry/acknowledgments from the satellite\n\n## Satellite Components:\n- **Receiver** - Demodulates incoming RF signals from ground station\n- **Command Decoder** - Extracts and decodes the command data\n- **Command Validator** - Verifies command integrity (checksums), authentication, and validity\n- **Command Processor** - Executes validated commands on satellite subsystems\n- **Telemetry Generator** - Creates acknowledgment/status messages\n- **Transmitter** - Sends telemetry/confirmations back to ground\n\n## Communication Links:\n- **Uplink** - Ground-to-satellite command channel\n- **Downlink** - Satellite-to-ground telemetry channel\n\n## Key Data Elements:\n- Command packets (command ID, parameters, checksum)\n- Acknowledgment packets (command received, validation result, execution status)\n- Error handling for lost/corrupted commands\n\n## Basic Flow:\nGround station encodes command \u00e2\u2020\u2019 transmits uplink \u00e2\u2020\u2019 satellite receives \u00e2\u2020\u2019 validates \u00e2\u2020\u2019 executes \u00e2\u2020\u2019 generates acknowledgment \u00e2\u2020\u2019 transmits downlink \u00e2\u2020\u2019 ground station confirms receipt.\n"}], "grading": {"expectations": [{"text": "Identifies command lifecycle: creation \u00e2\u2020\u2019 validation \u00e2\u2020\u2019 encoding \u00e2\u2020\u2019 transmission \u00e2\u2020\u2019 reception \u00e2\u2020\u2019 execution \u00e2\u2020\u2019 confirmation", "passed": true, "evidence": "Basic Flow section describes: 'Ground station encodes command \u00e2\u2020\u2019 transmits uplink \u00e2\u2020\u2019 satellite receives \u00e2\u2020\u2019 validates \u00e2\u2020\u2019 executes \u00e2\u2020\u2019 generates acknowledgment \u00e2\u2020\u2019 transmits downlink \u00e2\u2020\u2019 ground station confirms receipt.' Complete lifecycle with all stages in correct order."}, {"text": "Lists 4-6 main components with clear responsibilities", "passed": true, "evidence": "Response lists 6 ground station components (Command Interface, Command Encoder, Transmitter, Receiver) and 6 satellite components (Receiver, Command Decoder, Command Validator, Command Processor, Telemetry Generator, Transmitter), plus communication links. Clear separation between ground and satellite sides."}, {"text": "Emphasizes validation as a critical component for safety", "passed": true, "evidence": "Command Validator is explicitly listed as a satellite component with description: 'Verifies command integrity (checksums), authentication, and validity.' While not as emphatic about safety as the with-skill version, validation is present and includes authentication and integrity checks."}, {"text": "Suggests starting simple (direct delivery) before adding RF link simulation", "passed": false, "evidence": "Response presents complete system architecture but does not provide implementation guidance or suggest incremental development approach. No recommendation to start simple and build up complexity."}, {"text": "Mentions encoding (even if simplified initially) and confirmation telemetry", "passed": true, "evidence": "Encoding mentioned in Command Encoder component: 'Formats and encodes commands with error detection (checksums/CRC).' Confirmation telemetry covered by Telemetry Generator: 'Creates acknowledgment/status messages' and Key Data Elements mentions 'Acknowledgment packets (command received, validation result, execution status).'"}, {"text": "Keeps response concise and appropriate for 'basic' request\u00e2\u20ac\u201dnot over-engineered", "passed": true, "evidence": "Response is concise, bullet-point format, appropriate for 'basic' request. Lists components with brief descriptions (one line each), simple data flow, key data elements. No excessive detail or complexity."}], "summary": {"passed": 5, "failed": 1, "total": 6, "pass_rate": 0.83}}}], "previous_feedback": {}, "previous_outputs": {}, "benchmark": {"skill_name": "design-decomposition", "iteration": 1, "configurations": [{"name": "with_skill", "description": "Using design-decomposition skill", "pass_rate": {"mean": 0.944, "std_dev": 0.08, "values": [1.0, 1.0, 0.833]}, "eval_results": [{"eval_id": 1, "eval_name": "ground-station-multi-satellite", "passed": 6, "total": 6, "pass_rate": 1.0}, {"eval_id": 2, "eval_name": "satellite-subsystems-coupling", "passed": 6, "total": 6, "pass_rate": 1.0}, {"eval_id": 3, "eval_name": "command-system-basic", "passed": 5, "total": 6, "pass_rate": 0.833}]}, {"name": "without_skill", "description": "Baseline without skill", "pass_rate": {"mean": 0.833, "std_dev": 0.0, "values": [0.833, 0.833, 0.833]}, "eval_results": [{"eval_id": 1, "eval_name": "ground-station-multi-satellite", "passed": 5, "total": 6, "pass_rate": 0.833}, {"eval_id": 2, "eval_name": "satellite-subsystems-coupling", "passed": 5, "total": 6, "pass_rate": 0.833}, {"eval_id": 3, "eval_name": "command-system-basic", "passed": 5, "total": 6, "pass_rate": 0.833}]}], "delta": {"pass_rate": 0.111, "interpretation": "Skill improves pass rate by 11.1 percentage points (94.4% vs 83.3%)"}, "summary": "The design-decomposition skill shows consistent improvement over baseline, particularly in complex multi-subsystem scenarios (evals 1 and 2). The skill achieves perfect scores on the ground station and satellite subsystems evaluations, demonstrating stronger adherence to systematic decomposition methodology, explicit interface definitions, and incremental implementation strategies."}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "missing-tx-power",
+    "prompt": "I'm building a link budget calculator for a satellite but I don't have the actual transmit power specs yet—the spacecraft team hasn't finalized the design. I need to make progress on the ground station. What should I do?",
+    "perfect_response": {
+      "identifies_ambiguity_type": ["missing data"],
+      "assesses_risk": true,
+      "proposes_reasonable_approach": ["use typical value", "make configurable"],
+      "documents_assumption_explicitly": true,
+      "provides_validation_plan": ["request from spacecraft team", "sensitivity analysis"],
+      "allows_progress": true
+    }
+  },
+  {
+    "name": "undefined-crc-failure-behavior",
+    "prompt": "I'm implementing a command uplink system. The protocol spec says to validate CRC on received commands, but it doesn't say what to do if the CRC fails on a critical command (e.g., initiate safe mode). Should I reject it, retry, or execute anyway? The spec is silent on this.",
+    "perfect_response": {
+      "identifies_ambiguity_type": ["undefined behavior"],
+      "assesses_risk": ["high - safety critical"],
+      "chooses_conservative_option": ["reject command"],
+      "documents_decision_rationale": true,
+      "flags_for_clarification": ["don't guess on high-risk items"],
+      "recommends_seeking_stakeholder_input": true
+    }
+  }
+]

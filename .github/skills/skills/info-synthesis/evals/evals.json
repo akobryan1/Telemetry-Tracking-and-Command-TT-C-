@@ -1,0 +1,24 @@
+[
+  {
+    "name": "orbital-rf-synthesis",
+    "prompt": "I'm planning a ground station for a LEO satellite in a 500 km circular orbit. How does the orbital mechanics affect the RF link budget? I need to understand the connection between orbit parameters and signal strength.",
+    "perfect_response": {
+      "synthesizes_domains": ["orbital mechanics", "RF propagation", "geometry"],
+      "explains_connections": ["altitude affects range", "range affects FSPL", "velocity affects Doppler"],
+      "provides_concrete_example": true,
+      "identifies_insights": ["low altitude = stronger signal but shorter passes", "range variation during pass affects signal strength"],
+      "actionable_for_implementation": true
+    }
+  },
+  {
+    "name": "ccsds-multi-domain-flow",
+    "prompt": "Explain how a CCSDS telemetry packet gets from the satellite's software all the way to being stored in a ground station database. I need to understand the full end-to-end flow across all the technical layers.",
+    "perfect_response": {
+      "identifies_domains": ["software", "protocol", "RF", "signal processing", "data management"],
+      "shows_domain_transitions": ["software encapsulates data", "RF transmits", "receiver decodes", "protocol parses", "database stores"],
+      "provides_concrete_example": true,
+      "explains_dependencies": ["RF quality gates downstream success", "APID routes packets"],
+      "shows_layered_progression": true
+    }
+  }
+]

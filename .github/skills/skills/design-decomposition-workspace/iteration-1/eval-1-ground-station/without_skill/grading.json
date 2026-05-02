@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "Identifies at least 5-7 major subsystems with distinct responsibilities",
+      "passed": true,
+      "evidence": "Response identifies 8 main components: (1) Orbital Propagation Engine, (2) Antenna Pointing Controller, (3) RF Link Budget Calculator, (4) Doppler Compensation System, (5) CCSDS Protocol Handler, (6) Modem/SDR Interface, (7) Mission Planning & Scheduling, (8) Data Management & Archive. All have distinct responsibilities."
+    },
+    {
+      "text": "Defines inputs and outputs for each subsystem",
+      "passed": false,
+      "evidence": "While the response lists 'Key outputs' for Orbital Propagation Engine and describes 'Parameters to model' for RF Link Budget, it does not systematically define inputs and outputs for each subsystem. Most subsystems only list 'Responsibilities', 'Functions', or 'Features' without explicit input/output specifications."
+    },
+    {
+      "text": "Provides an implementation roadmap with prioritized build order",
+      "passed": true,
+      "evidence": "Response includes 'Recommended Build Order' with 6 phases: (1) Orbital Mechanics Core, (2) Antenna Pointing, (3) RF Link Modeling, (4) CCSDS Protocol Implementation, (5) System Integration, (6) Mission Operations Layer. Each phase is numbered and sequenced."
+    },
+    {
+      "text": "Explains why foundational components (orbit propagator, visibility calculator) come first",
+      "passed": true,
+      "evidence": "Phase 1 explanation states: 'Nothing works without knowing where the satellites are. This is your foundation.' The roadmap description emphasizes 'bottom-up incremental development' and explains that orbital propagation must come first as the foundation."
+    },
+    {
+      "text": "Addresses all mentioned requirements: multiple satellites, auto-pointing, Doppler, CCSDS",
+      "passed": true,
+      "evidence": "All requirements covered: (1) Multiple satellites - Mission Planning & Scheduling component with 'Resource allocation (multiple satellites)'; (2) Auto-pointing - Antenna Pointing Controller subsystem; (3) Doppler - Dedicated Doppler Compensation System; (4) CCSDS - CCSDS Protocol Handler for both telemetry and commands."
+    },
+    {
+      "text": "Recommends starting with a minimal working system before full features",
+      "passed": true,
+      "evidence": "Build order follows incremental approach: 'Start with single satellite, circular orbit. Verify against known ephemeris... Build complexity incrementally.' Phase 1 focuses on foundation before adding features in later phases."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 1,
+    "total": 6,
+    "pass_rate": 0.83
+  }
+}

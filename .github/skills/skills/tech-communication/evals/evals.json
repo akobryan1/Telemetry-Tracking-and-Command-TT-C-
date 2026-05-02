@@ -1,0 +1,25 @@
+[
+  {
+    "name": "readme-for-ttc-sim",
+    "prompt": "I've built a Python TT&C ground station simulator with satellite pass prediction, link budgets, and Doppler calculation. Can you help me write a good README that explains what it does and how to use it?",
+    "perfect_response": {
+      "has_executive_summary": true,
+      "has_installation_instructions": true,
+      "has_concrete_usage_example": true,
+      "explains_architecture": true,
+      "documents_assumptions_and_limitations": true,
+      "layered_information": ["overview for skimmers", "details for readers"]
+    }
+  },
+  {
+    "name": "explain-sgp4-to-manager",
+    "prompt": "My project manager (non-technical) asked why we're using SGP4 for orbit prediction instead of something else. How do I explain this decision to them?",
+    "perfect_response": {
+      "avoids_jargon": true,
+      "explains_why_before_what": true,
+      "provides_business_context": ["standard in industry", "sufficient accuracy", "cost-effective"],
+      "contrasts_with_alternatives": ["numerical integrators more accurate but slower/expensive"],
+      "connects_to_outcomes": true
+    }
+  }
+]

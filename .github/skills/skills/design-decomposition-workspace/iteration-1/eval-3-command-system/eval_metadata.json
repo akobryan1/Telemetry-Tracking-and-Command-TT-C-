@@ -1,0 +1,31 @@
+{
+  "eval_id": 3,
+  "eval_name": "command-system-basic",
+  "prompt": "What components do I need for a basic satellite uplink command system? I want to be able to send commands from a ground station to a satellite, have the satellite validate them, execute them, and send back confirmation. Not looking for a super detailed architecture, just want to understand the main pieces before I start coding.",
+  "assertions": [
+    {
+      "text": "Identifies command lifecycle: creation → validation → encoding → transmission → reception → execution → confirmation",
+      "type": "process-flow"
+    },
+    {
+      "text": "Lists 4-6 main components with clear responsibilities",
+      "type": "structural"
+    },
+    {
+      "text": "Emphasizes validation as a critical component for safety",
+      "type": "domain-knowledge"
+    },
+    {
+      "text": "Suggests starting simple (direct delivery) before adding RF link simulation",
+      "type": "methodology"
+    },
+    {
+      "text": "Mentions encoding (even if simplified initially) and confirmation telemetry",
+      "type": "completeness"
+    },
+    {
+      "text": "Keeps response concise and appropriate for 'basic' request—not over-engineered",
+      "type": "appropriateness"
+    }
+  ]
+}

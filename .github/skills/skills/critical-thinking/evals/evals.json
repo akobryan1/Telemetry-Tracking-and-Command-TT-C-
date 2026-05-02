@@ -1,0 +1,50 @@
+{
+  "skill_name": "critical-thinking",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm building a link budget calculator for my TT&C ground station. I'm planning to use the free-space path loss equation (FSPL = 20log10(d) + 20log10(f) + 20log10(4π/c)) and add fixed margins for atmospheric attenuation (0.5 dB) and antenna mispointing (1 dB). Should be good enough for LEO satellites at VHF/UHF bands, right? What am I missing?",
+      "expected_output": "Critical analysis that: (1) Questions the 'fixed margins' assumption—atmospheric effects vary significantly with elevation angle, weather, and frequency; (2) Identifies that 0.5 dB is likely too optimistic for low-elevation passes; (3) Points out that antenna mispointing loss depends on beam width and tracking accuracy, not a constant value; (4) Questions whether ionospheric effects (Faraday rotation, scintillation) are considered for VHF/UHF; (5) Asks about rain fade (less severe at VHF/UHF but not zero); (6) Recommends elevation-dependent atmospheric model rather than fixed margin; (7) Acknowledges that free-space path loss is correct baseline; (8) Asks about user's required link margin and mission criticality to calibrate the analysis",
+      "files": [],
+      "expectations": [
+        "Identifies that 'fixed margins' assumption is overly simplistic",
+        "Questions the specific margin values (0.5 dB atmosphere, 1 dB mispointing)",
+        "Points out that atmospheric attenuation varies with elevation angle",
+        "Mentions ionospheric effects relevant to VHF/UHF",
+        "Recommends elevation-dependent or dynamic margin calculations",
+        "Acknowledges what's correct (free-space path loss equation is appropriate)",
+        "Asks clarifying questions about mission requirements or criticality"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "For my satellite simulator, should I use SGP4 propagator or a numerical integrator with J2 perturbations? I'm simulating LEO satellites over 7-day periods and need position accuracy to within a few kilometers. SGP4 seems simpler since I can use TLEs directly, but I've heard numerical integration is more accurate. Which should I choose?",
+      "expected_output": "Comparative analysis that: (1) Identifies the key trade-off: convenience/data availability (SGP4 + TLEs) vs. accuracy (numerical integration); (2) Evaluates SGP4 accuracy: typically 1-3 km for near-term predictions from fresh TLEs, degrades over time; (3) Evaluates numerical integration: can achieve sub-km accuracy with proper models, but requires precise initial state (not always available); (4) Questions the 'few kilometers' requirement—is that mean error, max error, 3-sigma?; (5) Points out that TLE age matters critically for SGP4 accuracy; (6) Notes that for 7 days, SGP4 with fresh TLEs likely meets 'few km' requirement; (7) Recommends SGP4 for this use case given TLE availability and sufficient accuracy; (8) Suggests numerical integration if user has precise initial state vectors or needs sub-km accuracy; (9) Mentions hybrid approach: use SGP4 for convenience, validate against numerical integration",
+      "files": [],
+      "expectations": [
+        "Identifies key trade-off between convenience and accuracy",
+        "Provides quantitative accuracy estimates for both approaches (SGP4: 1-3 km typically, numerical: sub-km possible)",
+        "Questions the user's accuracy requirement for clarification",
+        "Points out that TLE age critically affects SGP4 accuracy",
+        "Notes that for 7-day simulation, SGP4 with fresh TLEs likely sufficient",
+        "Makes a clear recommendation with rationale (likely SGP4 given the context)",
+        "Acknowledges scenarios where the alternative would be better"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I think I should parse CCSDS telemetry packets byte-by-byte using bit masks and shifts in my ground station simulator, checking the version number, packet type, and sequence count as I go. Is this the right approach, or is there a better way to handle CCSDS packet parsing?",
+      "expected_output": "Critical analysis that: (1) Acknowledges byte-by-byte parsing is fundamentally correct but tedious and error-prone; (2) Questions whether reinventing the wheel is necessary—existing CCSDS libraries (e.g., NASA CFS, ESA PUS libraries) handle this; (3) Evaluates trade-offs: custom parsing gives full control and learning value, but is bug-prone and time-consuming; library usage is faster and tested, but less educational; (4) Points out potential issues with custom parsing: endianness errors, alignment issues, off-by-one bit shifts; (5) Asks about user's goals: learning exercise vs. functional simulator vs. production system; (6) Recommends libraries for production or quick prototyping, custom parsing for learning CCSDS internals; (7) If user proceeds with custom parsing, recommends using C structs with packed attributes or Python struct module rather than manual bit manipulation; (8) Emphasizes test-driven development with known-good packet examples",
+      "files": [],
+      "expectations": [
+        "Acknowledges manual parsing is possible but error-prone",
+        "Points out existence of CCSDS parsing libraries as alternatives",
+        "Evaluates trade-offs between custom parsing and using libraries",
+        "Identifies potential implementation issues (endianness, alignment, bit-shift errors)",
+        "Asks about user's goals (learning vs. production) to contextualize recommendation",
+        "Makes conditional recommendation based on use case",
+        "Suggests techniques to reduce errors if user proceeds with custom parsing (struct module, test-driven development)"
+      ]
+    }
+  ]
+}

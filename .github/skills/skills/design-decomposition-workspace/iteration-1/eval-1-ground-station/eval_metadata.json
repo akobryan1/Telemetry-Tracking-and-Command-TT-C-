@@ -1,0 +1,31 @@
+{
+  "eval_id": 1,
+  "eval_name": "ground-station-multi-satellite",
+  "prompt": "I'm starting a new project to simulate a TT&C ground station that needs to track multiple LEO satellites, receive their telemetry, and send commands back up. I know I'll need orbital mechanics, RF link modeling, and protocol handling, but I'm not sure how to organize all this. The ground station should handle automatic antenna pointing, deal with Doppler shift, and decode CCSDS packets. How should I structure this system? What are the main components I need, and in what order should I build them?",
+  "assertions": [
+    {
+      "text": "Identifies at least 5-7 major subsystems with distinct responsibilities",
+      "type": "structural"
+    },
+    {
+      "text": "Defines inputs and outputs for each subsystem",
+      "type": "completeness"
+    },
+    {
+      "text": "Provides an implementation roadmap with prioritized build order",
+      "type": "methodology"
+    },
+    {
+      "text": "Explains why foundational components (orbit propagator, visibility calculator) come first",
+      "type": "reasoning"
+    },
+    {
+      "text": "Addresses all mentioned requirements: multiple satellites, auto-pointing, Doppler, CCSDS",
+      "type": "coverage"
+    },
+    {
+      "text": "Recommends starting with a minimal working system before full features",
+      "type": "best-practice"
+    }
+  ]
+}

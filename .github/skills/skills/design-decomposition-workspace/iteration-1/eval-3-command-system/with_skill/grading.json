@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "Identifies command lifecycle: creation → validation → encoding → transmission → reception → execution → confirmation",
+      "passed": true,
+      "evidence": "Data Flow section shows complete lifecycle: 'Operator Input → Ground Command Station → [Encode Command] → RF Uplink → Satellite Receiver → [Decode Command] → Command Validator → Command Processor → Telemetry Generator → RF Downlink → Ground Station Receives Confirmation.' All stages present in correct order."
+    },
+    {
+      "text": "Lists 4-6 main components with clear responsibilities",
+      "passed": true,
+      "evidence": "Response identifies 8 major subsystems, each with clear responsibility defined: (1) Ground Command Station, (2) RF Uplink Channel, (3) Satellite Receiver, (4) Command Validator, (5) Command Processor, (6) Satellite State Model, (7) Telemetry Generator, (8) RF Downlink Channel. Exceeds minimum requirement."
+    },
+    {
+      "text": "Emphasizes validation as a critical component for safety",
+      "passed": true,
+      "evidence": "Command Validator subsystem is prominently featured with detailed component breakdown including 'Safety Enforcer: Block commands that violate safety constraints.' Key Component Details section dedicates entire subsection to Command Validator Components emphasizing safety checks."
+    },
+    {
+      "text": "Suggests starting simple (direct delivery) before adding RF link simulation",
+      "passed": false,
+      "evidence": "While the response provides comprehensive architecture, it does not explicitly recommend an implementation order or suggest starting with direct command delivery before adding RF link complexity. The response presents the full system without incremental build guidance."
+    },
+    {
+      "text": "Mentions encoding (even if simplified initially) and confirmation telemetry",
+      "passed": true,
+      "evidence": "Encoding explicitly mentioned in Data Flow: '[Encode Command]' and Ground Command Station outputs 'Encoded command packets.' Confirmation telemetry covered by Telemetry Generator subsystem: 'Create confirmation/acknowledgment messages for executed commands' and RF Downlink transmitting 'confirmation at ground station.'"
+    },
+    {
+      "text": "Keeps response concise and appropriate for 'basic' request—not over-engineered",
+      "passed": true,
+      "evidence": "Response is appropriately sized for a 'basic' request. Provides 8 subsystems with brief descriptions (1-2 sentences each), focused data flow diagram, and selective detail only on key components (Validator and Processor). No excessive detail on protocols, error handling, or advanced features."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 1,
+    "total": 6,
+    "pass_rate": 0.83
+  }
+}

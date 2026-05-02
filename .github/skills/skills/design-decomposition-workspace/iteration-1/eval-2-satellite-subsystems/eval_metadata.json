@@ -1,0 +1,31 @@
+{
+  "eval_id": 2,
+  "eval_name": "satellite-subsystems-coupling",
+  "prompt": "I need to build a satellite simulation that includes attitude control (reaction wheels and magnetorquers), power management (solar panels and batteries tracking sun angle and eclipse periods), and thermal management (heaters controlled based on component temperatures). These all interact—attitude affects which solar panels see the sun, which affects power, which affects whether I can run heaters. I'm overwhelmed by the coupling. How do I break this down into something I can actually implement?",
+  "assertions": [
+    {
+      "text": "Acknowledges the coupling between subsystems explicitly",
+      "type": "problem-recognition"
+    },
+    {
+      "text": "Proposes architectural pattern to manage cross-cutting concerns (e.g., central state, publish-subscribe, event-driven)",
+      "type": "architectural-solution"
+    },
+    {
+      "text": "Identifies subsystems: Attitude Dynamics, Power System, Thermal System, Orbital/Environmental (sun position, eclipse)",
+      "type": "structural"
+    },
+    {
+      "text": "Defines clear data flow showing how attitude affects power which affects thermal",
+      "type": "data-flow"
+    },
+    {
+      "text": "Suggests implementation strategy with stubbed dependencies to enable independent development",
+      "type": "methodology"
+    },
+    {
+      "text": "Recommends starting with simplified assumptions (e.g., constant sun angle) before adding full complexity",
+      "type": "best-practice"
+    }
+  ]
+}
