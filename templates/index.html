@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TT&C Dashboard - Satellite Monitoring</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>🛰️ TT&C Dashboard</h1>
+        <p>Telemetry, Tracking & Command Ground Station Network</p>
+    </header>
+
+    <div class="container">
+        <!-- Status Overview -->
+        <section class="panel">
+            <h2>Satellite Status</h2>
+            <div id="satellite-status">
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="label">Satellite:</span>
+                        <span class="value" id="sat-name">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Battery:</span>
+                        <span class="value" id="sat-battery">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Temperature:</span>
+                        <span class="value" id="sat-temp">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Mode:</span>
+                        <span class="value mode-badge" id="sat-mode">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Position:</span>
+                        <span class="value" id="sat-position">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Altitude:</span>
+                        <span class="value" id="sat-altitude">--</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ground Station Network -->
+        <section class="panel">
+            <h2>Ground Station Network</h2>
+            <div id="network-status">
+                <div class="network-summary">
+                    <span class="label">Active Stations:</span>
+                    <span class="value" id="active-stations">0</span>
+                    <span class="separator">/</span>
+                    <span class="value" id="total-stations">0</span>
+                </div>
+                <div id="station-list" class="station-grid">
+                    <!-- Stations will be populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Telemetry Data -->
+        <section class="panel">
+            <h2>Real-Time Telemetry</h2>
+            <div id="telemetry-data" class="telemetry-grid">
+                <div class="telemetry-item">
+                    <div class="telemetry-label">Battery Voltage</div>
+                    <div class="telemetry-value" id="telem-battery">--</div>
+                    <div class="telemetry-unit">V</div>
+                </div>
+                <div class="telemetry-item">
+                    <div class="telemetry-label">Solar Current</div>
+                    <div class="telemetry-value" id="telem-solar">--</div>
+                    <div class="telemetry-unit">A</div>
+                </div>
+                <div class="telemetry-item">
+                    <div class="telemetry-label">Temperature</div>
+                    <div class="telemetry-value" id="telem-temperature">--</div>
+                    <div class="telemetry-unit">°C</div>
+                </div>
+                <div class="telemetry-item">
+                    <div class="telemetry-label">Telemetry Packets</div>
+                    <div class="telemetry-value" id="telem-count">--</div>
+                    <div class="telemetry-unit">pkts</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pass Predictions -->
+        <section class="panel">
+            <h2>Upcoming Passes (Next 12 Hours)</h2>
+            <div class="pass-controls">
+                <label for="station-select">Station:</label>
+                <select id="station-select">
+                    <option value="">All Stations</option>
+                    <option value="Miami">Miami</option>
+                    <option value="Goldstone">Goldstone</option>
+                    <option value="Madrid">Madrid</option>
+                    <option value="Canberra">Canberra</option>
+                </select>
+                <button onclick="loadPasses()">Refresh</button>
+            </div>
+            <div id="passes-list" class="passes-container">
+                <!-- Passes will be populated dynamically -->
+            </div>
+        </section>
+
+        <!-- Command Uplink -->
+        <section class="panel">
+            <h2>Command Uplink</h2>
+            <div class="command-panel">
+                <div class="command-form">
+                    <label for="command-type">Command Type:</label>
+                    <select id="command-type" onchange="updateCommandParams()">
+                        <option value="SET_MODE">Set Mode</option>
+                        <option value="ADJUST_POWER">Adjust Power</option>
+                        <option value="RESET_TELEMETRY">Reset Telemetry</option>
+                        <option value="PAYLOAD_ON">Payload On</option>
+                        <option value="PAYLOAD_OFF">Payload Off</option>
+                    </select>
+
+                    <div id="command-params">
+                        <!-- Parameters will be shown based on command type -->
+                    </div>
+
+                    <button onclick="sendCommand()" class="send-btn">Send Command</button>
+                </div>
+
+                <div class="command-log">
+                    <h3>Command Log</h3>
+                    <div id="command-history" class="log-container">
+                        <!-- Command history will appear here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>Last Update: <span id="last-update">--</span></p>
+        <p>Auto-refresh: <span id="refresh-status">Enabled</span> (5s interval)</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
