@@ -126,6 +126,9 @@ def initialize_simulation():
     print(f"  Satellite: {SATELLITE_NAME}")
     print(f"  Ground Stations: {len(network.stations)}")
 
+# Initialize on module import (needed for Gunicorn)
+initialize_simulation()
+
 # ============================================================
 # Web Routes
 # ============================================================
@@ -365,8 +368,7 @@ if __name__ == '__main__':
     print("=" * 60)
     print()
     
-    # Initialize simulation
-    initialize_simulation()
+    # Already initialized at module level for Gunicorn compatibility
     
     print()
     print("Starting Flask web server...")
