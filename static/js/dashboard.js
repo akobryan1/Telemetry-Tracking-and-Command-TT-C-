@@ -12,6 +12,9 @@ let refreshTimer = null;
 document.addEventListener('DOMContentLoaded', function() {
     console.log('TT&C Dashboard initialized (Phase 7: WebSocket Mode)');
     
+    // Phase 8: Load available satellites
+    loadSatellites();
+    
     // Initialize WebSocket connection
     initializeWebSocket();
     
@@ -608,11 +611,6 @@ async function loadTrackingHistory() {
 // ============================================================
 // Phase 8: Multi-Satellite Support
 // ============================================================
-
-// Load available satellites on page load
-document.addEventListener('DOMContentLoaded', function() {
-    loadSatellites();
-});
 
 async function loadSatellites() {
     try {
