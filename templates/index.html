@@ -9,10 +9,22 @@
 <body>
     <header>
         <h1>🛰️ TT&C Dashboard</h1>
-        <p>Telemetry, Tracking & Command Ground Station Network</p>
+        <p>Telemetry, Tracking & Command Ground Station Network (Phases 4-10)</p>
     </header>
 
     <div class="container">
+        <!-- Phase 8: Satellite Selector -->
+        <section class="panel">
+            <h2>🛰️ Satellite Selection</h2>
+            <div class="satellite-selector">
+                <label for="satellite-select">Active Satellite:</label>
+                <select id="satellite-select" onchange="switchSatellite()">
+                    <!-- Options will be populated dynamically -->
+                </select>
+                <span id="satellite-info" class="satellite-description"></span>
+            </div>
+        </section>
+
         <!-- Status Overview -->
         <section class="panel">
             <h2>Satellite Status</h2>
@@ -203,6 +215,107 @@
                 </div>
             </div>
         </section>
+
+        <!-- Phase 9: Data Visualization -->
+        <section class="panel">
+            <h2>📊 Data Visualization</h2>
+            <div class="viz-tabs">
+                <button class="tab-btn active" onclick="showVizTab('charts')">Telemetry Charts</button>
+                <button class="tab-btn" onclick="showVizTab('groundtrack')">Ground Track</button>
+            </div>
+
+            <div id="viz-charts" class="viz-content active">
+                <div class="viz-controls">
+                    <label>Time Range: </label>
+                    <select id="chart-range" onchange="loadTelemetryChart()">
+                        <option value="1" selected>Last 1 Hour</option>
+                        <option value="3">Last 3 Hours</option>
+                        <option value="6">Last 6 Hours</option>
+                        <option value="12">Last 12 Hours</option>
+                        <option value="24">Last 24 Hours</option>
+                    </select>
+                    <button onclick="loadTelemetryChart()">Refresh</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="telemetry-chart"></canvas>
+                </div>
+            </div>
+
+            <div id="viz-groundtrack" class="viz-content">
+                <div class="viz-controls">
+                    <label>Track Duration: </label>
+                    <select id="track-duration">
+                        <option value="45">45 minutes</option>
+                        <option value="90" selected>90 minutes (1 orbit)</option>
+                        <option value="180">180 minutes (2 orbits)</option>
+                    </select>
+                    <button onclick="loadGroundTrack()">Refresh</button>
+                </div>
+                <div id="map-container" class="map-container">
+                    <!-- Leaflet map will be rendered here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Phase 10: Advanced Features -->
+        <section class="panel">
+            <h2>🔬 Advanced Features</h2>
+            <div class="advanced-tabs">
+                <button class="tab-btn active" onclick="showAdvancedTab('linkbudget')">Link Budget</button>
+                <button class="tab-btn" onclick="showAdvancedTab('scheduler')">Pass Scheduler</button>
+                <button class="tab-btn" onclick="showAdvancedTab('anomaly')">Anomaly Detection</button>
+            </div>
+
+            <div id="advanced-linkbudget" class="advanced-content active">
+                <div class="advanced-controls">
+                    <label>Ground Station: </label>
+                    <select id="linkbudget-station">
+                        <option value="Miami" selected>Miami</option>
+                        <option value="Goldstone">Goldstone</option>
+                        <option value="Madrid">Madrid</option>
+                        <option value="Canberra">Canberra</option>
+                    </select>
+                    <button onclick="calculateLinkBudget()">Calculate</button>
+                </div>
+                <div id="linkbudget-results" class="results-grid">
+                    <!-- Link budget results will be displayed here -->
+                </div>
+            </div>
+
+            <div id="advanced-scheduler" class="advanced-content">
+                <div class="advanced-controls">
+                    <label>Time Range: </label>
+                    <select id="scheduler-hours">
+                        <option value="12">Next 12 Hours</option>
+                        <option value="24" selected>Next 24 Hours</option>
+                        <option value="48">Next 48 Hours</option>
+                    </select>
+                    <label>Max Passes: </label>
+                    <select id="scheduler-maxpasses">
+                        <option value="5">Top 5</option>
+                        <option value="10" selected>Top 10</option>
+                        <option value="15">Top 15</option>
+                    </select>
+                    <button onclick="optimizeSchedule()">Optimize Schedule</button>
+                </div>
+                <div id="scheduler-results" class="results-table">
+                    <!-- Optimized schedule will be displayed here -->
+                </div>
+            </div>
+
+            <div id="advanced-anomaly" class="advanced-content">
+                <div class="advanced-controls">
+                    <button onclick="checkAnomalies()">Check Now</button>
+                    <button onclick="toggleAutoAnomaly()" id="auto-anomaly-btn">Enable Auto-Check</button>
+                </div>
+                <div id="anomaly-status" class="anomaly-status">
+                    <h3>Health Status: <span id="health-status" class="status-badge">--</span></h3>
+                </div>
+                <div id="anomaly-results" class="anomaly-results">
+                    <!-- Anomaly detection results will be displayed here -->
+                </div>
+            </div>
+        </section>
     </div>
 
     <footer>
@@ -211,8 +324,15 @@
         <p>Auto-refresh: <span id="refresh-status">WebSocket (Real-time)</span></p>
     </footer>
 
+    <!-- External Libraries -->
     <!-- Socket.IO Client (Phase 7) -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <!-- Chart.js (Phase 9) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Leaflet (Phase 9) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>
 </html>

@@ -1,10 +1,15 @@
 """
-TT&C Web Dashboard - Flask Application (Phase 4 & 5)
+TT&C Web Dashboard - Flask Application (Phases 4-10)
 
 Web interface for satellite telemetry, tracking, and command operations.
 Provides real-time monitoring and command uplink capabilities.
 
-Phase 5: Cloud deployment with Supabase database integration.
+Phase 5: Cloud deployment with Supabase database integration
+Phase 6: Active database logging and historical data
+Phase 7: Real-time WebSocket updates
+Phase 8: Multi-satellite support (ISS, Hubble, Starlink)
+Phase 9: Data visualization (charts, ground tracks)
+Phase 10: Advanced features (link budget, scheduling, anomaly detection)
 """
 
 from flask import Flask, render_template, jsonify, request
@@ -39,6 +44,15 @@ from utils.coordinate_transforms import (
     is_visible,
     create_ground_station
 )
+from utils.advanced_features import (
+    LinkBudgetCalculator,
+    PassScheduler,
+    AnomalyDetector
+)
+
+# Import satellite configuration (Phase 8)
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from config.satellites import get_satellite_config, get_all_satellites, DEFAULT_SATELLITE
 
 # ============================================================
 # Flask App Configuration
@@ -57,17 +71,25 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 # Global State (In production, use a proper state management solution)
 # ============================================================
 
-# Simulation state
-satellite = None
+# Simulation state (Phase 8: Multi-satellite support)
+satellites = {}  # Dictionary of satellite instances by satellite_id
+active_satellite_id = DEFAULT_SATELLITE  # Currently selected satellite
+satellite = None  # Active satellite instance
 network = None
 ts = None
-satellite_orbit = None
+satellite_orbits = {}  # Dictionary of orbital elements by satellite_id
+satellite_orbit = None  # Active satellite orbit
 observers = {}
-db_logger = None
+db_loggers = {}  # Database logger per satellite
+db_logger = None  # Active database logger
 
-# Configuration
-SATELLITE_NAME = "ISS"
-TLE_FILE = "data/inputs/tle/stations.txt"
+# Advanced features (Phase 10)
+link_calculator = None
+pass_scheduler = None
+anomaly_detectors = {}  # Anomaly detector per satellite
+
+# Configuration (Phase 8: Now supports multiple satellites)
+TLE_FILE = "data/inputs/tle/satellites.txt"
 GROUND_STATIONS = [
     {'name': 'Miami', 'latitude': 25.7617, 'longitude': -80.1918, 'altitude_m': 10, 'min_elevation': 10.0},
     {'name': 'Goldstone', 'latitude': 35.4267, 'longitude': -116.8900, 'altitude_m': 1036, 'min_elevation': 10.0},
@@ -76,22 +98,59 @@ GROUND_STATIONS = [
 ]
 
 def initialize_simulation():
-    """Initialize satellite and ground station network."""
-    global satellite, network, ts, satellite_orbit, observers, db_logger
+    """Initialize satellites and ground station network (Phase 8: Multi-satellite support)."""
+    global satellites, active_satellite_id, satellite, network, ts, satellite_orbits, satellite_orbit
+    global observers, db_loggers, db_logger, link_calculator, pass_scheduler, anomaly_detectors
     
     # Load timescale
     ts = load.timescale()
     
-    # Load satellite TLE
-    satellite_orbit = load_satellite_tle(TLE_FILE, SATELLITE_NAME)
+    # Phase 8: Initialize all available satellites
+    all_satellites = get_all_satellites()
+    print(f"\nInitializing {len(all_satellites)} satellites...")
     
-    # Initialize satellite
-    satellite = Satellite(
-        name=SATELLITE_NAME,
-        initial_battery_voltage=28.0,
-        initial_temperature=20.0,
-        initial_mode=Satellite.MODE_NOMINAL
-    )
+    for sat_id, sat_config in all_satellites.items():
+        try:
+            # Load satellite TLE
+            orbit = load_satellite_tle(sat_config['tle_file'], sat_config['name'])
+            satellite_orbits[sat_id] = orbit
+            
+            # Initialize satellite
+            sat_instance = Satellite(
+                name=sat_config['name'],
+                initial_battery_voltage=sat_config['initial_battery_voltage'],
+                initial_temperature=sat_config['initial_temperature'],
+                initial_mode=sat_config['initial_mode']
+            )
+            satellites[sat_id] = sat_instance
+            
+            # Initialize anomaly detector (Phase 10)
+            anomaly_detectors[sat_id] = AnomalyDetector()
+            
+            # Initialize database logger if enabled
+            database_mode = os.environ.get('DATABASE_MODE', 'csv').lower()
+            if database_mode == 'database':
+                try:
+                    from core.database_logger import DatabaseLogger
+                    db_loggers[sat_id] = DatabaseLogger(satellite_name=sat_config['name'])
+                except Exception as e:
+                    print(f"⚠️  Failed to initialize database logger for {sat_id}: {e}")
+            
+            print(f"  ✓ {sat_id}: {sat_config['name']} ({sat_config['orbit_type']})")
+            
+        except Exception as e:
+            print(f"  ✗ Failed to initialize {sat_id}: {e}")
+    
+    # Set active satellite
+    satellite = satellites[active_satellite_id]
+    satellite_orbit = satellite_orbits[active_satellite_id]
+    db_logger = db_loggers.get(active_satellite_id)
+    
+    # Phase 10: Initialize advanced features
+    link_calculator = LinkBudgetCalculator()
+    pass_scheduler = PassScheduler()
+    
+    print(f"\n✓ Active satellite: {active_satellite_id}")
     
     # Create ground station network
     stations = []
@@ -116,22 +175,10 @@ def initialize_simulation():
     
     network = GroundStationNetwork(stations)
     
-    # Initialize database logger if enabled
-    database_mode = os.environ.get('DATABASE_MODE', 'csv').lower()
-    if database_mode == 'database':
-        try:
-            from core.database_logger import DatabaseLogger
-            db_logger = DatabaseLogger(satellite_name=SATELLITE_NAME)
-            print(f"✓ Database logging enabled")
-        except Exception as e:
-            print(f"⚠️  Failed to initialize database logger: {e}")
-            print(f"   Falling back to CSV mode")
-    else:
-        print(f"✓ CSV logging mode (set DATABASE_MODE=database to enable cloud logging)")
-    
-    print("✓ Simulation initialized")
-    print(f"  Satellite: {SATELLITE_NAME}")
+    print(f"✓ Simulation initialized")
+    print(f"  Satellites: {len(satellites)}")
     print(f"  Ground Stations: {len(network.stations)}")
+    print(f"  Advanced features enabled: Link Budget, Pass Scheduler, Anomaly Detection")
 
 # Initialize on module import (needed for Gunicorn)
 initialize_simulation()
@@ -473,6 +520,325 @@ def api_history_tracking():
         })
     except Exception as e:
         return jsonify({'error': f'Failed to retrieve tracking data: {str(e)}'}), 500
+
+
+# ============================================================
+# Phase 8: Multi-Satellite API Endpoints
+# ============================================================
+
+@app.route('/api/satellites')
+def api_satellites():
+    """Get list of available satellites."""
+    sat_list = []
+    all_sats = get_all_satellites()
+    
+    for sat_id, config in all_sats.items():
+        sat_list.append({
+            'id': sat_id,
+            'name': config['name'],
+            'description': config['description'],
+            'orbit_type': config['orbit_type'],
+            'orbital_period_min': config['orbital_period_min'],
+            'is_active': sat_id == active_satellite_id
+        })
+    
+    return jsonify({
+        'satellites': sat_list,
+        'active': active_satellite_id,
+        'count': len(sat_list)
+    })
+
+@app.route('/api/satellite/select', methods=['POST'])
+def api_select_satellite():
+    """Switch active satellite (Phase 8)."""
+    global satellite, satellite_orbit, db_logger, active_satellite_id
+    
+    data = request.get_json()
+    satellite_id = data.get('satellite_id', '').upper()
+    
+    if not satellite_id:
+        return jsonify({'error': 'Missing satellite_id'}), 400
+    
+    if satellite_id not in satellites:
+        return jsonify({'error': f'Unknown satellite: {satellite_id}'}), 400
+    
+    # Switch active satellite
+    active_satellite_id = satellite_id
+    satellite = satellites[satellite_id]
+    satellite_orbit = satellite_orbits[satellite_id]
+    db_logger = db_loggers.get(satellite_id)
+    
+    config = get_satellite_config(satellite_id)
+    
+    return jsonify({
+        'success': True,
+        'active_satellite': satellite_id,
+        'name': config['name'],
+        'description': config['description']
+    })
+
+
+# ============================================================
+# Phase 9: Data Visualization API Endpoints
+# ============================================================
+
+@app.route('/api/viz/telemetry')
+def api_viz_telemetry():
+    """Get telemetry data formatted for charting (Phase 9)."""
+    if db_logger is None:
+        return jsonify({'error': 'Database logging not enabled'}), 400
+    
+    hours = request.args.get('hours', default=1, type=int)
+    hours = min(hours, 24)  # Cap at 24 hours
+    
+    try:
+        # Get recent telemetry
+        records = db_logger.get_recent_telemetry(limit=500)
+        
+        # Filter by time window
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        filtered = [r for r in records 
+                   if datetime.fromisoformat(r['timestamp'].replace('Z', '+00:00')) > cutoff]
+        
+        # Format for Chart.js
+        timestamps = [r['timestamp'] for r in filtered]
+        battery_voltage = [r['battery_voltage'] for r in filtered]
+        temperature = [r['temperature'] for r in filtered]
+        solar_current = [r.get('solar_current', 0) for r in filtered]
+        
+        return jsonify({
+            'labels': timestamps,
+            'datasets': {
+                'battery_voltage': {
+                    'label': 'Battery Voltage (V)',
+                    'data': battery_voltage,
+                    'borderColor': 'rgb(75, 192, 192)',
+                    'tension': 0.1
+                },
+                'temperature': {
+                    'label': 'Temperature (°C)',
+                    'data': temperature,
+                    'borderColor': 'rgb(255, 99, 132)',
+                    'tension': 0.1
+                },
+                'solar_current': {
+                    'label': 'Solar Current (A)',
+                    'data': solar_current,
+                    'borderColor': 'rgb(255, 205, 86)',
+                    'tension': 0.1
+                }
+            },
+            'time_range_hours': hours,
+            'data_points': len(filtered)
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to retrieve visualization data: {str(e)}'}), 500
+
+@app.route('/api/viz/ground_track')
+def api_viz_ground_track():
+    """Get satellite ground track for map visualization (Phase 9)."""
+    if satellite_orbit is None:
+        return jsonify({'error': 'Simulation not initialized'}), 500
+    
+    minutes = request.args.get('minutes', default=90, type=int)
+    minutes = min(minutes, 180)  # Cap at 3 hours
+    
+    # Generate ground track points
+    now = datetime.now(timezone.utc)
+    points = []
+    
+    for i in range(0, minutes, 1):  # 1-minute intervals
+        time_offset = now + timedelta(minutes=i)
+        t = ts.utc(time_offset.year, time_offset.month, time_offset.day,
+                  time_offset.hour, time_offset.minute, time_offset.second)
+        
+        geocentric = satellite_orbit.at(t)
+        subpoint = geocentric.subpoint()
+        
+        points.append({
+            'timestamp': time_offset.isoformat(),
+            'latitude': round(subpoint.latitude.degrees, 4),
+            'longitude': round(subpoint.longitude.degrees, 4),
+            'altitude_km': round(subpoint.elevation.km, 2)
+        })
+    
+    return jsonify({
+        'satellite': satellite.name,
+        'track_duration_min': minutes,
+        'points': points,
+        'ground_stations': [
+            {'name': gs['name'], 'lat': gs['latitude'], 'lon': gs['longitude']}
+            for gs in GROUND_STATIONS
+        ]
+    })
+
+
+# ============================================================
+# Phase 10: Advanced Features API Endpoints
+# ============================================================
+
+@app.route('/api/link_budget')
+def api_link_budget():
+    """Calculate link budget for current satellite pass (Phase 10)."""
+    if satellite_orbit is None or link_calculator is None:
+        return jsonify({'error': 'Simulation not initialized'}), 500
+    
+    station_name = request.args.get('station', default='Miami', type=str)
+    
+    if station_name not in observers:
+        return jsonify({'error': f'Unknown station: {station_name}'}), 400
+    
+    # Get current tracking data
+    now = datetime.now(timezone.utc)
+    t = ts.utc(now.year, now.month, now.day, now.hour, now.minute, now.second)
+    
+    observer = observers[station_name]
+    az, el, rng, rng_rate = compute_azimuth_elevation_range(satellite_orbit, observer, t)
+    
+    # Get satellite configuration
+    sat_config = get_satellite_config(active_satellite_id)
+    
+    # Typical ground station parameters
+    gs_tx_power_dbw = 10.0  # 10W = 10 dBW
+    gs_antenna_gain_dbi = 20.0  # 20 dBi parabolic dish
+    
+    # Calculate downlink budget
+    downlink = link_calculator.calculate_link_budget(
+        tx_power_dbw=3.0,  # Satellite TX power (3W = 4.77 dBW, use 3 for margin)
+        tx_gain_dbi=sat_config['antenna_gain_dbi'],
+        rx_gain_dbi=gs_antenna_gain_dbi,
+        frequency_mhz=sat_config['frequency_downlink_mhz'],
+        range_km=float(rng),
+        elevation_deg=float(el),
+        system_losses_db=3.0
+    )
+    
+    # Calculate uplink budget
+    uplink = link_calculator.calculate_link_budget(
+        tx_power_dbw=gs_tx_power_dbw,
+        tx_gain_dbi=gs_antenna_gain_dbi,
+        rx_gain_dbi=sat_config['antenna_gain_dbi'],
+        frequency_mhz=sat_config['frequency_uplink_mhz'],
+        range_km=float(rng),
+        elevation_deg=float(el),
+        system_losses_db=3.0
+    )
+    
+    return jsonify({
+        'timestamp': now.isoformat(),
+        'satellite': satellite.name,
+        'station': station_name,
+        'tracking': {
+            'elevation_deg': round(float(el), 2),
+            'azimuth_deg': round(float(az), 2),
+            'range_km': round(float(rng), 2)
+        },
+        'downlink': downlink,
+        'uplink': uplink,
+        'frequencies': {
+            'downlink_mhz': sat_config['frequency_downlink_mhz'],
+            'uplink_mhz': sat_config['frequency_uplink_mhz']
+        }
+    })
+
+@app.route('/api/schedule_passes')
+def api_schedule_passes():
+    """Optimize pass schedule across network (Phase 10)."""
+    if satellite_orbit is None or pass_scheduler is None:
+        return jsonify({'error': 'Simulation not initialized'}), 500
+    
+    hours = request.args.get('hours', default=24, type=int)
+    max_passes = request.args.get('max_passes', default=10, type=int)
+    
+    # Get all passes from api_passes logic
+    now = datetime.now(timezone.utc)
+    end_time = now + timedelta(hours=hours)
+    
+    # Generate time steps (1 minute intervals)
+    time_steps = []
+    current = now
+    while current < end_time:
+        time_steps.append(current)
+        current += timedelta(minutes=1)
+    
+    # Collect all passes across all stations
+    all_passes = []
+    
+    for stn_name, observer in observers.items():
+        in_pass = False
+        current_pass = {}
+        
+        for step_time in time_steps:
+            t = ts.utc(step_time.year, step_time.month, step_time.day,
+                      step_time.hour, step_time.minute, step_time.second)
+            
+            az, el, rng, _ = compute_azimuth_elevation_range(satellite_orbit, observer, t)
+            visible = is_visible(el, 10.0)
+            
+            if visible and not in_pass:
+                # AOS
+                in_pass = True
+                current_pass = {
+                    'station': stn_name,
+                    'aos': step_time.isoformat(),
+                    'aos_azimuth': round(az, 1),
+                    'aos_elevation': round(el, 1),
+                    'max_elevation': el,
+                    'max_el_time': step_time.isoformat(),
+                    'aos_range_km': round(float(rng), 2)
+                }
+            elif visible and in_pass:
+                # Update max elevation
+                if el > current_pass['max_elevation']:
+                    current_pass['max_elevation'] = el
+                    current_pass['max_el_time'] = step_time.isoformat()
+            elif not visible and in_pass:
+                # LOS
+                in_pass = False
+                duration = (step_time - datetime.fromisoformat(current_pass['aos'])).total_seconds() / 60.0
+                current_pass['los'] = step_time.isoformat()
+                current_pass['duration_min'] = round(duration, 1)
+                current_pass['max_elevation'] = round(current_pass['max_elevation'], 1)
+                all_passes.append(current_pass)
+    
+    # Optimize using pass scheduler
+    optimized = pass_scheduler.optimize_schedule(all_passes, max_passes=max_passes)
+    
+    return jsonify({
+        'satellite': satellite.name,
+        'prediction_time': now.isoformat(),
+        'time_range_hours': hours,
+        'total_passes_available': len(all_passes),
+        'scheduled_passes': len(optimized),
+        'passes': optimized
+    })
+
+@app.route('/api/anomaly_check')
+def api_anomaly_check():
+    """Check telemetry for anomalies (Phase 10)."""
+    if satellite is None:
+        return jsonify({'error': 'Simulation not initialized'}), 500
+    
+    detector = anomaly_detectors.get(active_satellite_id)
+    if not detector:
+        return jsonify({'error': 'Anomaly detector not initialized'}), 500
+    
+    # Get current telemetry
+    telemetry = satellite.generate_telemetry(is_sunlit=True, time_step_seconds=10)
+    timestamp = datetime.now(timezone.utc)
+    
+    # Run anomaly detection
+    anomaly_report = detector.detect_anomalies(telemetry, timestamp)
+    
+    # Add current telemetry to report
+    anomaly_report['telemetry'] = {
+        'battery_voltage': round(telemetry['battery_voltage'], 2),
+        'solar_current': round(telemetry['solar_current'], 2),
+        'temperature': round(telemetry['temperature'], 1),
+        'mode': telemetry['mode']
+    }
+    
+    return jsonify(anomaly_report)
 
 
 # ============================================================

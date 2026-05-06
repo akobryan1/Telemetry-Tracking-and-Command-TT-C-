@@ -604,3 +604,484 @@ async function loadTrackingHistory() {
     }
 }
 
+
+// ============================================================
+// Phase 8: Multi-Satellite Support
+// ============================================================
+
+// Load available satellites on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadSatellites();
+});
+
+async function loadSatellites() {
+    try {
+        const response = await fetch('/api/satellites');
+        const data = await response.json();
+        
+        const select = document.getElementById('satellite-select');
+        select.innerHTML = '';
+        
+        data.satellites.forEach(sat => {
+            const option = document.createElement('option');
+            option.value = sat.id;
+            option.textContent = `${sat.id} - ${sat.description}`;
+            option.selected = sat.is_active;
+            select.appendChild(option);
+            
+            // Show description for active satellite
+            if (sat.is_active) {
+                document.getElementById('satellite-info').textContent = 
+                    `${sat.description} (${sat.orbit_type}, Period: ${sat.orbital_period_min} min)`;
+            }
+        });
+        
+        console.log(`✓ Loaded ${data.count} satellites (active: ${data.active})`);
+        
+    } catch (error) {
+        console.error('Failed to load satellites:', error);
+    }
+}
+
+async function switchSatellite() {
+    const select = document.getElementById('satellite-select');
+    const satelliteId = select.value;
+    
+    try {
+        const response = await fetch('/api/satellite/select', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ satellite_id: satelliteId })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log(`✓ Switched to satellite: ${data.active_satellite}`);
+            document.getElementById('satellite-info').textContent = data.description;
+            
+            // Refresh data
+            if (socket && isConnected) {
+                socket.emit('request_status');
+            }
+            loadPasses();
+            
+            // Show success message
+            alert(`Switched to ${data.name}`);
+        } else {
+            alert(`Failed to switch satellite: ${data.error}`);
+        }
+        
+    } catch (error) {
+        console.error('Failed to switch satellite:', error);
+        alert('Error switching satellite');
+    }
+}
+
+
+// ============================================================
+// Phase 9: Data Visualization
+// ============================================================
+
+let telemetryChart = null;
+let leafletMap = null;
+let trackLayer = null;
+
+// Show/hide visualization tabs
+function showVizTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.viz-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Remove active from all buttons
+    document.querySelectorAll('.viz-tabs .tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(`viz-${tabName}`).classList.add('active');
+    
+    // Mark button as active
+    event.target.classList.add('active');
+    
+    // Load data for the tab
+    if (tabName === 'charts') {
+        loadTelemetryChart();
+    } else if (tabName === 'groundtrack') {
+        loadGroundTrack();
+    }
+}
+
+async function loadTelemetryChart() {
+    const hours = document.getElementById('chart-range').value;
+    
+    try {
+        const response = await fetch(`/api/viz/telemetry?hours=${hours}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            console.error('Failed to load chart data:', data.error);
+            return;
+        }
+        
+        const ctx = document.getElementById('telemetry-chart').getContext('2d');
+        
+        // Destroy existing chart
+        if (telemetryChart) {
+            telemetryChart.destroy();
+        }
+        
+        // Create new chart
+        telemetryChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels.map(ts => new Date(ts).toLocaleTimeString()),
+                datasets: [
+                    {
+                        label: data.datasets.battery_voltage.label,
+                        data: data.datasets.battery_voltage.data,
+                        borderColor: data.datasets.battery_voltage.borderColor,
+                        tension: data.datasets.battery_voltage.tension,
+                        yAxisID: 'y-voltage'
+                    },
+                    {
+                        label: data.datasets.temperature.label,
+                        data: data.datasets.temperature.data,
+                        borderColor: data.datasets.temperature.borderColor,
+                        tension: data.datasets.temperature.tension,
+                        yAxisID: 'y-temp'
+                    },
+                    {
+                        label: data.datasets.solar_current.label,
+                        data: data.datasets.solar_current.data,
+                        borderColor: data.datasets.solar_current.borderColor,
+                        tension: data.datasets.solar_current.tension,
+                        yAxisID: 'y-current'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    'y-voltage': {
+                        type: 'linear',
+                        position: 'left',
+                        title: { display: true, text: 'Voltage (V)' }
+                    },
+                    'y-temp': {
+                        type: 'linear',
+                        position: 'right',
+                        title: { display: true, text: 'Temperature (°C)' },
+                        grid: { drawOnChartArea: false }
+                    },
+                    'y-current': {
+                        type: 'linear',
+                        position: 'right',
+                        title: { display: true, text: 'Current (A)' },
+                        grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        });
+        
+        console.log(`✓ Loaded telemetry chart (${data.data_points} points, ${hours}h range)`);
+        
+    } catch (error) {
+        console.error('Failed to load telemetry chart:', error);
+    }
+}
+
+async function loadGroundTrack() {
+    const duration = document.getElementById('track-duration').value;
+    
+    try {
+        const response = await fetch(`/api/viz/ground_track?minutes=${duration}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            console.error('Failed to load ground track:', data.error);
+            return;
+        }
+        
+        // Initialize map if needed
+        if (!leafletMap) {
+            leafletMap = L.map('map-container').setView([0, 0], 2);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(leafletMap);
+        }
+        
+        // Clear existing track layer
+        if (trackLayer) {
+            leafletMap.removeLayer(trackLayer);
+        }
+        
+        // Create ground track polyline
+        const trackPoints = data.points.map(p => [p.latitude, p.longitude]);
+        trackLayer = L.polyline(trackPoints, {
+            color: '#ff0000',
+            weight: 3,
+            opacity: 0.7
+        }).addTo(leafletMap);
+        
+        // Add markers for start and current position
+        if (data.points.length > 0) {
+            const start = data.points[0];
+            const current = data.points[0];
+            
+            L.marker([start.latitude, start.longitude])
+                .addTo(leafletMap)
+                .bindPopup(`Start: ${new Date(start.timestamp).toLocaleTimeString()}`);
+            
+            L.circleMarker([current.latitude, current.longitude], {
+                color: '#00ff00',
+                fillColor: '#00ff00',
+                fillOpacity: 0.8,
+                radius: 8
+            })
+                .addTo(leafletMap)
+                .bindPopup(`${data.satellite}<br>Alt: ${current.altitude_km} km`);
+        }
+        
+        // Add ground station markers
+        data.ground_stations.forEach(gs => {
+            L.marker([gs.lat, gs.lon], {
+                icon: L.icon({
+                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41]
+                })
+            })
+                .addTo(leafletMap)
+                .bindPopup(gs.name);
+        });
+        
+        // Fit map to track
+        leafletMap.fitBounds(trackLayer.getBounds());
+        
+        console.log(`✓ Loaded ground track (${data.points.length} points, ${duration} min)`);
+        
+    } catch (error) {
+        console.error('Failed to load ground track:', error);
+    }
+}
+
+
+// ============================================================
+// Phase 10: Advanced Features
+// ============================================================
+
+// Show/hide advanced tabs
+function showAdvancedTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.advanced-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Remove active from all buttons
+    document.querySelectorAll('.advanced-tabs .tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(`advanced-${tabName}`).classList.add('active');
+    
+    // Mark button as active
+    event.target.classList.add('active');
+}
+
+async function calculateLinkBudget() {
+    const station = document.getElementById('linkbudget-station').value;
+    
+    try {
+        const response = await fetch(`/api/link_budget?station=${station}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            alert(`Error: ${data.error}`);
+            return;
+        }
+        
+        // Display results
+        const resultsDiv = document.getElementById('linkbudget-results');
+        resultsDiv.innerHTML = `
+            <div class="result-item">
+                <h4>📡 Downlink Budget</h4>
+                <p><strong>Received Power:</strong> ${data.downlink.received_power_dbw} dBW</p>
+                <p><strong>Link Margin:</strong> <span class="value">${data.downlink.link_margin_db}</span> <span class="unit">dB</span></p>
+                <p><strong>Status:</strong> ${data.downlink.link_status}</p>
+                <p class="detail">Path Loss: ${data.downlink.path_loss_db} dB | Atm Loss: ${data.downlink.atmospheric_loss_db} dB</p>
+            </div>
+            
+            <div class="result-item">
+                <h4>📡 Uplink Budget</h4>
+                <p><strong>Received Power:</strong> ${data.uplink.received_power_dbw} dBW</p>
+                <p><strong>Link Margin:</strong> <span class="value">${data.uplink.link_margin_db}</span> <span class="unit">dB</span></p>
+                <p><strong>Status:</strong> ${data.uplink.link_status}</p>
+                <p class="detail">Path Loss: ${data.uplink.path_loss_db} dB | Atm Loss: ${data.uplink.atmospheric_loss_db} dB</p>
+            </div>
+            
+            <div class="result-item">
+                <h4>📊 Tracking Data</h4>
+                <p><strong>Station:</strong> ${data.station}</p>
+                <p><strong>Elevation:</strong> ${data.tracking.elevation_deg}°</p>
+                <p><strong>Azimuth:</strong> ${data.tracking.azimuth_deg}°</p>
+                <p><strong>Range:</strong> ${data.tracking.range_km} km</p>
+            </div>
+            
+            <div class="result-item">
+                <h4>📻 Frequencies</h4>
+                <p><strong>Downlink:</strong> ${data.frequencies.downlink_mhz} MHz</p>
+                <p><strong>Uplink:</strong> ${data.frequencies.uplink_mhz} MHz</p>
+                <p><strong>Satellite:</strong> ${data.satellite}</p>
+            </div>
+        `;
+        
+        console.log(`✓ Link budget calculated for ${station}`);
+        
+    } catch (error) {
+        console.error('Failed to calculate link budget:', error);
+        alert('Error calculating link budget');
+    }
+}
+
+async function optimizeSchedule() {
+    const hours = document.getElementById('scheduler-hours').value;
+    const maxPasses = document.getElementById('scheduler-maxpasses').value;
+    
+    try {
+        const response = await fetch(`/api/schedule_passes?hours=${hours}&max_passes=${maxPasses}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            alert(`Error: ${data.error}`);
+            return;
+        }
+        
+        // Display results
+        const resultsDiv = document.getElementById('scheduler-results');
+        
+        let html = `
+            <p class="info">Optimized ${data.scheduled_passes} best passes from ${data.total_passes_available} available passes</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Quality Score</th>
+                        <th>Station</th>
+                        <th>AOS Time</th>
+                        <th>Duration (min)</th>
+                        <th>Max Elevation (°)</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        data.passes.forEach((pass, index) => {
+            const aosTime = new Date(pass.aos).toLocaleString();
+            html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td><strong>${pass.quality_score}</strong></td>
+                    <td>${pass.station}</td>
+                    <td>${aosTime}</td>
+                    <td>${pass.duration_min}</td>
+                    <td>${pass.max_elevation}</td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table>';
+        resultsDiv.innerHTML = html;
+        
+        console.log(`✓ Optimized schedule: ${data.scheduled_passes} passes`);
+        
+    } catch (error) {
+        console.error('Failed to optimize schedule:', error);
+        alert('Error optimizing schedule');
+    }
+}
+
+let anomalyAutoCheck = false;
+let anomalyTimer = null;
+
+async function checkAnomalies() {
+    try {
+        const response = await fetch('/api/anomaly_check');
+        const data = await response.json();
+        
+        if (data.error) {
+            alert(`Error: ${data.error}`);
+            return;
+        }
+        
+        // Update health status
+        const statusBadge = document.getElementById('health-status');
+        statusBadge.textContent = data.health_status;
+        statusBadge.className = `status-badge ${data.health_status.toLowerCase()}`;
+        
+        // Display telemetry
+        const resultsDiv = document.getElementById('anomaly-results');
+        
+        let html = `
+            <div class="anomaly-telemetry">
+                <h4>Current Telemetry</h4>
+                <p>Battery: ${data.telemetry.battery_voltage} V | 
+                   Temperature: ${data.telemetry.temperature} °C | 
+                   Solar Current: ${data.telemetry.solar_current} A | 
+                   Mode: ${data.telemetry.mode}</p>
+            </div>
+        `;
+        
+        if (data.anomaly_count === 0) {
+            html += '<p class="info">✅ No anomalies detected - All systems nominal</p>';
+        } else {
+            html += `<p class="warning">⚠️ ${data.anomaly_count} anomaly(ies) detected:</p>`;
+            
+            data.anomalies.forEach(anomaly => {
+                html += `
+                    <div class="anomaly-item ${anomaly.severity.toLowerCase()}">
+                        <div class="anomaly-type">${anomaly.type} - ${anomaly.severity}</div>
+                        <div class="anomaly-details">
+                            Parameter: ${anomaly.parameter} | 
+                            ${anomaly.value !== undefined ? `Value: ${anomaly.value}` : ''} 
+                            ${anomaly.threshold !== undefined ? `| Threshold: ${anomaly.threshold}` : ''}
+                            ${anomaly.rate !== undefined ? `| Rate: ${anomaly.rate} | Max Rate: ${anomaly.max_rate}` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        resultsDiv.innerHTML = html;
+        
+        console.log(`✓ Anomaly check completed: ${data.health_status} (${data.anomaly_count} anomalies)`);
+        
+    } catch (error) {
+        console.error('Failed to check anomalies:', error);
+        alert('Error checking anomalies');
+    }
+}
+
+function toggleAutoAnomaly() {
+    anomalyAutoCheck = !anomalyAutoCheck;
+    const btn = document.getElementById('auto-anomaly-btn');
+    
+    if (anomalyAutoCheck) {
+        btn.textContent = 'Disable Auto-Check';
+        btn.style.background = '#dc3545';
+        anomalyTimer = setInterval(checkAnomalies, 30000); // Check every 30 seconds
+        console.log('✓ Auto anomaly detection enabled');
+    } else {
+        btn.textContent = 'Enable Auto-Check';
+        btn.style.background = '#28a745';
+        if (anomalyTimer) {
+            clearInterval(anomalyTimer);
+            anomalyTimer = null;
+        }
+        console.log('✓ Auto anomaly detection disabled');
+    }
+}
