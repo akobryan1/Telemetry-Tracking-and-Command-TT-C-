@@ -65,7 +65,7 @@ app.config['JSON_SORT_KEYS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ttc-dashboard-secret-key-2026')
 
 # Initialize SocketIO for real-time updates (Phase 7)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # ============================================================
 # Global State (In production, use a proper state management solution)
@@ -89,7 +89,9 @@ pass_scheduler = None
 anomaly_detectors = {}  # Anomaly detector per satellite
 
 # Configuration (Phase 8: Now supports multiple satellites)
-TLE_FILE = "data/inputs/tle/satellites.txt"
+# Use absolute path for production deployment
+BASE_DIR = Path(__file__).parent.parent
+TLE_FILE = str(BASE_DIR / "data" / "inputs" / "tle" / "satellites.txt")
 GROUND_STATIONS = [
     {'name': 'Miami', 'latitude': 25.7617, 'longitude': -80.1918, 'altitude_m': 10, 'min_elevation': 10.0},
     {'name': 'Goldstone', 'latitude': 35.4267, 'longitude': -116.8900, 'altitude_m': 1036, 'min_elevation': 10.0},

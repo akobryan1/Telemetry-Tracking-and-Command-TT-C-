@@ -8,14 +8,14 @@
 </head>
 <body>
     <header>
-        <h1>🛰️ TT&C Dashboard</h1>
-        <p>Telemetry, Tracking & Command Ground Station Network (Phases 4-10)</p>
+        <h1>⬡ TT&C MISSION CONTROL ⬡</h1>
+        <p>◆ Telemetry, Tracking & Command Ground Station Network ◆</p>
     </header>
 
     <div class="container">
         <!-- Phase 8: Satellite Selector -->
         <section class="panel">
-            <h2>🛰️ Satellite Selection</h2>
+            <h2>◈ SATELLITE SELECTION</h2>
             <div class="satellite-selector">
                 <label for="satellite-select">Active Satellite:</label>
                 <select id="satellite-select" onchange="switchSatellite()">
@@ -27,7 +27,7 @@
 
         <!-- Status Overview -->
         <section class="panel">
-            <h2>Satellite Status</h2>
+            <h2>◆ SATELLITE STATUS</h2>
             <div id="satellite-status">
                 <div class="status-grid">
                     <div class="status-item">
@@ -60,7 +60,7 @@
 
         <!-- Ground Station Network -->
         <section class="panel">
-            <h2>Ground Station Network</h2>
+            <h2>◎ GROUND STATION NETWORK</h2>
             <div id="network-status">
                 <div class="network-summary">
                     <span class="label">Active Stations:</span>
@@ -76,7 +76,7 @@
 
         <!-- Telemetry Data -->
         <section class="panel">
-            <h2>Real-Time Telemetry</h2>
+            <h2>◇ REAL-TIME TELEMETRY</h2>
             <div id="telemetry-data" class="telemetry-grid">
                 <div class="telemetry-item">
                     <div class="telemetry-label">Battery Voltage</div>
@@ -103,7 +103,7 @@
 
         <!-- Pass Predictions -->
         <section class="panel">
-            <h2>Upcoming Passes (Next 12 Hours)</h2>
+            <h2>◐ UPCOMING PASSES (NEXT 12 HOURS)</h2>
             <div class="pass-controls">
                 <label for="station-select">Station:</label>
                 <select id="station-select">
@@ -122,7 +122,7 @@
 
         <!-- Command Uplink -->
         <section class="panel">
-            <h2>Command Uplink</h2>
+            <h2>◈ COMMAND UPLINK</h2>
             <div class="command-panel">
                 <div class="command-form">
                     <label for="command-type">Command Type:</label>
@@ -152,7 +152,7 @@
 
         <!-- Historical Data -->
         <section class="panel">
-            <h2>Historical Data</h2>
+            <h2>◓ HISTORICAL DATA</h2>
             <div class="history-tabs">
                 <button class="tab-btn active" onclick="showHistoryTab('telemetry')">Telemetry History</button>
                 <button class="tab-btn" onclick="showHistoryTab('commands')">Command History</button>
@@ -218,7 +218,7 @@
 
         <!-- Phase 9: Data Visualization -->
         <section class="panel">
-            <h2>📊 Data Visualization</h2>
+            <h2>◒ DATA VISUALIZATION</h2>
             <div class="viz-tabs">
                 <button class="tab-btn active" onclick="showVizTab('charts')">Telemetry Charts</button>
                 <button class="tab-btn" onclick="showVizTab('groundtrack')">Ground Track</button>
@@ -259,7 +259,7 @@
 
         <!-- Phase 10: Advanced Features -->
         <section class="panel">
-            <h2>🔬 Advanced Features</h2>
+            <h2>◉ ADVANCED FEATURES</h2>
             <div class="advanced-tabs">
                 <button class="tab-btn active" onclick="showAdvancedTab('linkbudget')">Link Budget</button>
                 <button class="tab-btn" onclick="showAdvancedTab('scheduler')">Pass Scheduler</button>

@@ -12,5 +12,5 @@ COPY . .
 # Expose port
 EXPOSE 5000
 
-# Run with Gunicorn for production
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--worker-class", "eventlet", "--timeout", "120", "src.app:app"]
+# Run with Gunicorn for production (use socketio for WebSocket support)
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--worker-class", "eventlet", "--timeout", "120", "src.app:socketio"]

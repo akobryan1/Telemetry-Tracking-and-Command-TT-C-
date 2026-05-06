@@ -4,11 +4,17 @@ Satellite Configuration - Multi-Satellite Support (Phase 8)
 Defines available satellites and their properties.
 """
 
+from pathlib import Path
+
+# Get absolute path to TLE file for production deployment
+BASE_DIR = Path(__file__).parent.parent
+TLE_FILE_PATH = str(BASE_DIR / "data" / "inputs" / "tle" / "satellites.txt")
+
 SATELLITES = {
     'ISS': {
         'name': 'ISS (ZARYA)',
         'norad_id': 25544,
-        'tle_file': 'data/inputs/tle/satellites.txt',
+        'tle_file': TLE_FILE_PATH,
         'initial_battery_voltage': 28.0,
         'initial_temperature': 20.0,
         'initial_mode': 'NOMINAL',
@@ -22,7 +28,7 @@ SATELLITES = {
     'HUBBLE': {
         'name': 'HUBBLE SPACE TELESCOPE',
         'norad_id': 20580,
-        'tle_file': 'data/inputs/tle/satellites.txt',
+        'tle_file': TLE_FILE_PATH,
         'initial_battery_voltage': 27.5,
         'initial_temperature': 15.0,
         'initial_mode': 'SCIENCE',
@@ -36,7 +42,7 @@ SATELLITES = {
     'STARLINK': {
         'name': 'STARLINK-1007',
         'norad_id': 44713,
-        'tle_file': 'data/inputs/tle/satellites.txt',
+        'tle_file': TLE_FILE_PATH,
         'initial_battery_voltage': 29.0,
         'initial_temperature': 10.0,
         'initial_mode': 'NOMINAL',
