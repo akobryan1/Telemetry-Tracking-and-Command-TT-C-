@@ -1,10 +1,55 @@
-__pycache__
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
 *.pyc
 *.pyo
-*.egg-info
-.git
-.gitignore
-.env
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
 .venv
-venv
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Git
+.git/
+.gitignore
+
+# Environment variables (secrets!)
+.env
+.env.local
+
+# Output data (regenerated during runtime)
+data/outputs/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# GitHub
+.github/
+
+# Logs
+*.log
+
+# OS files
 .DS_Store
+Thumbs.db

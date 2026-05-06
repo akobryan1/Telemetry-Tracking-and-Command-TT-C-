@@ -9,6 +9,11 @@ PyYAML>=6.0
 pytest>=7.4.0
 pytest-cov>=4.1.0
 
-# Optional: Web interface (for Phase 4)
+# Web interface (Phase 4)
 flask==2.3.3
 python-dotenv==1.0.0
+
+# Production deployment (Phase 5)
+gunicorn==21.2.0
+supabase==2.3.4
+psycopg2-binary==2.9.9

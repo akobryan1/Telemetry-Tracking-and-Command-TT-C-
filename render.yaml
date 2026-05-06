@@ -1,0 +1,32 @@
+# Render Blueprint for TT&C Simulation
+# Automatic deployment configuration for Render.com
+
+services:
+  - type: web
+    name: ttc-simulation
+    runtime: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    
+    # Environment variables (set actual values in Render dashboard)
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_MODE
+        value: database
+      - key: SUPABASE_URL
+        sync: false  # Set manually in Render dashboard
+      - key: SUPABASE_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false  # Set manually in Render dashboard
+    
+    # Health check
+    healthCheckPath: /api/status
+    
+    # Auto-deploy on push to main branch
+    autoDeploy: true

@@ -1,14 +1,21 @@
 """
-TT&C Web Dashboard - Flask Application (Phase 4)
+TT&C Web Dashboard - Flask Application (Phase 4 & 5)
 
 Web interface for satellite telemetry, tracking, and command operations.
 Provides real-time monitoring and command uplink capabilities.
+
+Phase 5: Cloud deployment with Supabase database integration.
 """
 
 from flask import Flask, render_template, jsonify, request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import sys
+import os
+
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
 
 # Add src directory to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -49,6 +56,7 @@ network = None
 ts = None
 satellite_orbit = None
 observers = {}
+db_logger = None
 
 # Configuration
 SATELLITE_NAME = "ISS"
@@ -61,8 +69,7 @@ GROUND_STATIONS = [
 ]
 
 def initialize_simulation():
-    """Initialize satellite and ground station network."""
-    global satellite, network, ts, satellite_orbit, observers
+    """Initialize satellite and ground station network.""", db_logger
     
     # Load timescale
     ts = load.timescale()
@@ -99,6 +106,20 @@ def initialize_simulation():
         )
         stations.append(station)
     
+    network = GroundStationNetwork(stations)
+    
+    # Initialize database logger if enabled
+    database_mode = os.environ.get('DATABASE_MODE', 'csv').lower()
+    if database_mode == 'database':
+        try:
+            from core.database_logger import DatabaseLogger
+            db_logger = DatabaseLogger(satellite_name=SATELLITE_NAME)
+            print(f"✓ Database logging enabled")
+        except Exception as e:
+            print(f"⚠️  Failed to initialize database logger: {e}")
+            print(f"   Falling back to CSV mode")
+    else:
+        print(f"✓ CSV logging mode (set DATABASE_MODE=database to enable cloud logging)"
     network = GroundStationNetwork(stations)
     
     print("✓ Simulation initialized")
@@ -326,20 +347,32 @@ def api_command():
                     'status': cmd.status.name,
                     'acknowledgment': cmd.acknowledgment,
                     'uplink_station': station
-                })
-        
-        return jsonify({'error': 'Failed to uplink command'}), 500
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# ============================================================
-# Application Startup
-# ============================================================
-
-if __name__ == '__main__':
+                }) & 5)")
     print("=" * 60)
-    print("TT&C Web Dashboard (Phase 4)")
+    print()
+    
+    # Initialize simulation
+    initialize_simulation()
+    
+    print()
+    print("Starting Flask web server...")
+    
+    # Get port from environment or default to 5000
+    port = int(os.environ.get('PORT', 5000))
+    
+    # Check if running in production
+    flask_env = os.environ.get('FLASK_ENV', 'development')
+    debug_mode = flask_env != 'production'
+    
+    if debug_mode:
+        print(f"Dashboard: http://localhost:{port}")
+        print(f"API Status: http://localhost:{port}/api/status")
+    else:
+        print(f"Running in production mode on port {port}")
+    
+    print()
+    
+    app.run(host='0.0.0.0', port=port, debug=debug_mod
     print("=" * 60)
     print()
     
