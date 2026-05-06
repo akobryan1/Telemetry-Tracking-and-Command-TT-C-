@@ -138,8 +138,9 @@ async function updateStatus() {
 
 // Update status display (used by both WebSocket and REST API)
 function updateStatusDisplay(data) {
-    // Update satellite info
-    document.getElementById('sat-name').textContent = data.satellite.name;
+    try {
+        // Update satellite info
+        document.getElementById('sat-name').textContent = data.satellite.name;
         document.getElementById('sat-battery').textContent = `${data.satellite.battery_voltage} V`;
         document.getElementById('sat-temp').textContent = `${data.satellite.temperature} °C`;
         document.getElementById('sat-mode').textContent = data.satellite.mode;
