@@ -290,3 +290,228 @@ async function sendCommand() {
         alert('Failed to send command: ' + error.message);
     }
 }
+
+// ============================================================
+// Historical Data Functions (Phase 6)
+// ============================================================
+
+function showHistoryTab(tabName) {
+    // Hide all content
+    document.querySelectorAll('.history-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Remove active from all buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected content
+    document.getElementById(`history-${tabName}`).classList.add('active');
+    
+    // Activate button
+    event.target.classList.add('active');
+    
+    // Load data for the selected tab
+    if (tabName === 'telemetry') {
+        loadTelemetryHistory();
+    } else if (tabName === 'commands') {
+        loadCommandsHistory();
+    } else if (tabName === 'tracking') {
+        loadTrackingHistory();
+    }
+}
+
+async function loadTelemetryHistory() {
+    const limit = document.getElementById('telemetry-limit').value;
+    
+    try {
+        const response = await fetch(`/api/history/telemetry?limit=${limit}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            document.getElementById('telemetry-history-table').innerHTML = 
+                `<p class="error">Error: ${data.error}</p>`;
+            return;
+        }
+        
+        if (data.count === 0) {
+            document.getElementById('telemetry-history-table').innerHTML = 
+                '<p class="info">No telemetry data available yet. Data will appear after API calls.</p>';
+            return;
+        }
+        
+        // Build table
+        let html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Ground Station</th>
+                        <th>Battery (V)</th>
+                        <th>Solar (A)</th>
+                        <th>Temp (°C)</th>
+                        <th>Mode</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        data.telemetry.forEach(record => {
+            const timestamp = new Date(record.timestamp).toLocaleString();
+            html += `
+                <tr>
+                    <td>${timestamp}</td>
+                    <td>${record.ground_station}</td>
+                    <td>${record.battery_voltage ? record.battery_voltage.toFixed(2) : 'N/A'}</td>
+                    <td>${record.solar_current ? record.solar_current.toFixed(2) : 'N/A'}</td>
+                    <td>${record.temperature ? record.temperature.toFixed(1) : 'N/A'}</td>
+                    <td><span class="mode-badge">${record.mode || 'N/A'}</span></td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table>';
+        html += `<p class="info">Showing ${data.count} of ${data.count} records</p>`;
+        
+        document.getElementById('telemetry-history-table').innerHTML = html;
+        
+    } catch (error) {
+        console.error('Failed to load telemetry history:', error);
+        document.getElementById('telemetry-history-table').innerHTML = 
+            `<p class="error">Failed to load data: ${error.message}</p>`;
+    }
+}
+
+async function loadCommandsHistory() {
+    const limit = document.getElementById('commands-limit').value;
+    
+    try {
+        const response = await fetch(`/api/history/commands?limit=${limit}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            document.getElementById('commands-history-table').innerHTML = 
+                `<p class="error">Error: ${data.error}</p>`;
+            return;
+        }
+        
+        if (data.count === 0) {
+            document.getElementById('commands-history-table').innerHTML = 
+                '<p class="info">No command history available yet. Send commands to see them here.</p>';
+            return;
+        }
+        
+        // Build table
+        let html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Command Type</th>
+                        <th>Command ID</th>
+                        <th>Status</th>
+                        <th>Uplink Station</th>
+                        <th>Parameters</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        data.commands.forEach(record => {
+            const timestamp = new Date(record.timestamp).toLocaleString();
+            const params = JSON.stringify(record.parameters || {});
+            html += `
+                <tr>
+                    <td>${timestamp}</td>
+                    <td>${record.command_type}</td>
+                    <td>${record.command_id}</td>
+                    <td><span class="status-badge ${record.status}">${record.status}</span></td>
+                    <td>${record.uplink_station}</td>
+                    <td class="params">${params}</td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table>';
+        html += `<p class="info">Showing ${data.count} of ${data.count} records</p>`;
+        
+        document.getElementById('commands-history-table').innerHTML = html;
+        
+    } catch (error) {
+        console.error('Failed to load commands history:', error);
+        document.getElementById('commands-history-table').innerHTML = 
+            `<p class="error">Failed to load data: ${error.message}</p>`;
+    }
+}
+
+async function loadTrackingHistory() {
+    const limit = document.getElementById('tracking-limit').value;
+    const station = document.getElementById('tracking-station').value;
+    
+    let url = `/api/history/tracking?limit=${limit}`;
+    if (station) {
+        url += `&station=${station}`;
+    }
+    
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.error) {
+            document.getElementById('tracking-history-table').innerHTML = 
+                `<p class="error">Error: ${data.error}</p>`;
+            return;
+        }
+        
+        if (data.count === 0) {
+            document.getElementById('tracking-history-table').innerHTML = 
+                '<p class="info">No tracking data available yet. Data is logged during status updates.</p>';
+            return;
+        }
+        
+        // Build table
+        let html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Station</th>
+                        <th>Azimuth (°)</th>
+                        <th>Elevation (°)</th>
+                        <th>Range (km)</th>
+                        <th>Range Rate (km/s)</th>
+                        <th>Visible</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        data.tracking.forEach(record => {
+            const timestamp = new Date(record.timestamp).toLocaleString();
+            const visibleIcon = record.is_visible ? '✅' : '❌';
+            html += `
+                <tr class="${record.is_visible ? 'visible' : 'not-visible'}">
+                    <td>${timestamp}</td>
+                    <td>${record.station}</td>
+                    <td>${record.azimuth_deg ? record.azimuth_deg.toFixed(2) : 'N/A'}</td>
+                    <td>${record.elevation_deg ? record.elevation_deg.toFixed(2) : 'N/A'}</td>
+                    <td>${record.range_km ? record.range_km.toFixed(2) : 'N/A'}</td>
+                    <td>${record.range_rate_km_s ? record.range_rate_km_s.toFixed(3) : 'N/A'}</td>
+                    <td>${visibleIcon}</td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table>';
+        html += `<p class="info">Showing ${data.count} of ${data.count} records${station ? ` for ${station}` : ''}</p>`;
+        
+        document.getElementById('tracking-history-table').innerHTML = html;
+        
+    } catch (error) {
+        console.error('Failed to load tracking history:', error);
+        document.getElementById('tracking-history-table').innerHTML = 
+            `<p class="error">Failed to load data: ${error.message}</p>`;
+    }
+}
+

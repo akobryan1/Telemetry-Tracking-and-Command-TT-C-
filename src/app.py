@@ -172,6 +172,20 @@ def api_status():
         
         if visible:
             active_stations.append(station_name)
+        
+        # Log tracking data to database if enabled
+        if db_logger:
+            try:
+                tracking_data = {
+                    'azimuth_deg': float(az),
+                    'elevation_deg': float(el),
+                    'range_km': float(rng),
+                    'range_rate_km_s': float(rng_rate),
+                    'is_visible': bool(visible)
+                }
+                db_logger.log_tracking(tracking_data, station_name, now.isoformat())
+            except Exception as e:
+                print(f"⚠️  Failed to log tracking data: {e}")
     
     # Get satellite position
     geocentric = satellite_orbit.at(t)
@@ -279,7 +293,22 @@ def api_telemetry():
     
     # Generate current telemetry (simplified - assume sunlit for demo)
     telemetry = satellite.generate_telemetry(is_sunlit=True, time_step_seconds=10)
-    telemetry['timestamp'] = datetime.now(timezone.utc).isoformat()
+    timestamp = datetime.now(timezone.utc).isoformat()
+    telemetry['timestamp'] = timestamp
+    
+    # Log to database if enabled
+    if db_logger:
+        try:
+            # Determine active ground station (or use first visible)
+            ground_station = network.active_station.name if network.active_station else 'N/A'
+            if ground_station == 'N/A':
+                visible = network.get_visible_stations()
+                if visible:
+                    ground_station = visible[0].name
+            
+            db_logger.log_telemetry(telemetry, ground_station, timestamp)
+        except Exception as e:
+            print(f"⚠️  Failed to log telemetry to database: {e}")
     
     return jsonify(telemetry)
 
@@ -344,6 +373,21 @@ def api_command():
             
             if processed:
                 cmd = processed[0]
+                
+                # Log command to database if enabled
+                if db_logger:
+                    try:
+                        command_data = {
+                            'command_type': command_type,
+                            'command_id': cmd.command_id,
+                            'parameters': data,
+                            'status': cmd.status.name,
+                            'ack_timestamp': timestamp
+                        }
+                        db_logger.log_command(command_data, station, timestamp)
+                    except Exception as e:
+                        print(f"⚠️  Failed to log command to database: {e}")
+                
                 return jsonify({
                     'success': True,
                     'command_id': cmd.command_id,
@@ -356,6 +400,72 @@ def api_command():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/history/telemetry')
+def api_history_telemetry():
+    """Get historical telemetry data from database."""
+    if db_logger is None:
+        return jsonify({'error': 'Database logging not enabled'}), 400
+    
+    limit = request.args.get('limit', default=100, type=int)
+    limit = min(limit, 1000)  # Cap at 1000 records
+    
+    try:
+        records = db_logger.get_recent_telemetry(limit=limit)
+        return jsonify({
+            'count': len(records),
+            'limit': limit,
+            'telemetry': records
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to retrieve telemetry: {str(e)}'}), 500
+
+@app.route('/api/history/commands')
+def api_history_commands():
+    """Get historical command data from database."""
+    if db_logger is None:
+        return jsonify({'error': 'Database logging not enabled'}), 400
+    
+    limit = request.args.get('limit', default=50, type=int)
+    limit = min(limit, 500)  # Cap at 500 records
+    
+    try:
+        records = db_logger.get_recent_commands(limit=limit)
+        return jsonify({
+            'count': len(records),
+            'limit': limit,
+            'commands': records
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to retrieve commands: {str(e)}'}), 500
+
+@app.route('/api/history/tracking')
+def api_history_tracking():
+    """Get historical tracking data from database."""
+    if db_logger is None:
+        return jsonify({'error': 'Database logging not enabled'}), 400
+    
+    station = request.args.get('station', default=None, type=str)
+    limit = request.args.get('limit', default=100, type=int)
+    limit = min(limit, 1000)  # Cap at 1000 records
+    
+    try:
+        # Query tracking data
+        query = db_logger.supabase.table('tracking').select('*').order('timestamp', desc=True).limit(limit)
+        
+        if station:
+            query = query.eq('station', station)
+        
+        response = query.execute()
+        
+        return jsonify({
+            'count': len(response.data),
+            'limit': limit,
+            'station_filter': station,
+            'tracking': response.data
+        })
+    except Exception as e:
+        return jsonify({'error': f'Failed to retrieve tracking data: {str(e)}'}), 500
 
 
 # ============================================================
