@@ -347,7 +347,21 @@ def api_command():
                     'status': cmd.status.name,
                     'acknowledgment': cmd.acknowledgment,
                     'uplink_station': station
-                }) & 5)")
+                })
+        
+        return jsonify({'error': 'Command failed'}), 500
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ============================================================
+# Application Entry Point
+# ============================================================
+
+if __name__ == '__main__':
+    print("=" * 60)
+    print("TT&C Web Dashboard (Phase 4 & 5)")
     print("=" * 60)
     print()
     
@@ -372,17 +386,4 @@ def api_command():
     
     print()
     
-    app.run(host='0.0.0.0', port=port, debug=debug_mod
-    print("=" * 60)
-    print()
-    
-    # Initialize simulation
-    initialize_simulation()
-    
-    print()
-    print("Starting Flask web server...")
-    print("Dashboard: http://localhost:5000")
-    print("API Status: http://localhost:5000/api/status")
-    print()
-    
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=debug_mode)
