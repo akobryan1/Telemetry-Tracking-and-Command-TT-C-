@@ -69,7 +69,8 @@ GROUND_STATIONS = [
 ]
 
 def initialize_simulation():
-    """Initialize satellite and ground station network.""", db_logger
+    """Initialize satellite and ground station network."""
+    global satellite, network, ts, satellite_orbit, observers, db_logger
     
     # Load timescale
     ts = load.timescale()
@@ -119,8 +120,7 @@ def initialize_simulation():
             print(f"⚠️  Failed to initialize database logger: {e}")
             print(f"   Falling back to CSV mode")
     else:
-        print(f"✓ CSV logging mode (set DATABASE_MODE=database to enable cloud logging)"
-    network = GroundStationNetwork(stations)
+        print(f"✓ CSV logging mode (set DATABASE_MODE=database to enable cloud logging)")
     
     print("✓ Simulation initialized")
     print(f"  Satellite: {SATELLITE_NAME}")
