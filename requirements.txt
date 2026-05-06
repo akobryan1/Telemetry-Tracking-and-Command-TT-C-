@@ -13,6 +13,11 @@ pytest-cov>=4.1.0
 flask==2.3.3
 python-dotenv==1.0.0
 
+# Real-time WebSocket support (Phase 7)
+flask-socketio==5.3.5
+python-socketio==5.10.0
+eventlet==0.33.3
+
 # Production deployment (Phase 5)
 gunicorn==21.2.0
 supabase==2.3.4

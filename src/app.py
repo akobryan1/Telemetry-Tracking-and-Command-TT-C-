@@ -8,10 +8,13 @@ Phase 5: Cloud deployment with Supabase database integration.
 """
 
 from flask import Flask, render_template, jsonify, request
+from flask_socketio import SocketIO, emit
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import sys
 import os
+import threading
+import time
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -45,6 +48,10 @@ app = Flask(__name__,
             template_folder='../templates',
             static_folder='../static')
 app.config['JSON_SORT_KEYS'] = False
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ttc-dashboard-secret-key-2026')
+
+# Initialize SocketIO for real-time updates (Phase 7)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # ============================================================
 # Global State (In production, use a proper state management solution)
@@ -469,6 +476,185 @@ def api_history_tracking():
 
 
 # ============================================================
+# WebSocket Event Handlers (Phase 7)
+# ============================================================
+
+# Track connected clients
+connected_clients = 0
+realtime_broadcast_active = False
+broadcast_thread = None
+
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection."""
+    global connected_clients, realtime_broadcast_active, broadcast_thread
+    connected_clients += 1
+    print(f'✓ Client connected (total: {connected_clients})')
+    emit('connection_status', {'status': 'connected', 'message': 'Real-time updates enabled'})
+    
+    # Start broadcast thread if not already running
+    if not realtime_broadcast_active:
+        realtime_broadcast_active = True
+        broadcast_thread = threading.Thread(target=broadcast_realtime_updates, daemon=True)
+        broadcast_thread.start()
+        print('✓ Real-time broadcast thread started')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection."""
+    global connected_clients, realtime_broadcast_active
+    connected_clients -= 1
+    print(f'✓ Client disconnected (total: {connected_clients})')
+    
+    # Stop broadcast if no clients connected
+    if connected_clients <= 0:
+        realtime_broadcast_active = False
+        print('✓ Real-time broadcast thread stopped (no clients)')
+
+@socketio.on('request_status')
+def handle_status_request():
+    """Handle manual status request from client."""
+    try:
+        # Get current status data (same as REST API)
+        now = datetime.now(timezone.utc)
+        t = ts.utc(now.year, now.month, now.day, now.hour, now.minute, now.second)
+        
+        visibility_data = {}
+        active_stations = []
+        
+        for station_name, observer in observers.items():
+            az, el, rng, rng_rate = compute_azimuth_elevation_range(
+                satellite_orbit, observer, t
+            )
+            visible = is_visible(el, 10.0)
+            
+            visibility_data[station_name] = {
+                'is_visible': bool(visible),
+                'elevation': round(float(el), 2),
+                'azimuth': round(float(az), 2),
+                'range_km': round(float(rng), 2),
+                'range_rate_km_s': round(float(rng_rate), 3)
+            }
+            
+            if visible:
+                active_stations.append(station_name)
+        
+        geocentric = satellite_orbit.at(t)
+        subpoint = geocentric.subpoint()
+        
+        response = {
+            'timestamp': now.isoformat(),
+            'satellite': {
+                'name': satellite.name,
+                'battery_voltage': round(satellite.battery_voltage, 2),
+                'temperature': round(satellite.temperature, 1),
+                'mode': satellite.mode,
+                'telemetry_count': satellite.telemetry_count,
+                'position': {
+                    'latitude': round(subpoint.latitude.degrees, 4),
+                    'longitude': round(subpoint.longitude.degrees, 4),
+                    'altitude_km': round(subpoint.elevation.km, 2)
+                }
+            },
+            'network': {
+                'active_stations': active_stations,
+                'total_stations': len(network.stations),
+                'visibility': visibility_data
+            }
+        }
+        
+        emit('status_update', response)
+        
+    except Exception as e:
+        print(f'⚠️  Error in status request: {e}')
+        emit('error', {'message': str(e)})
+
+def broadcast_realtime_updates():
+    """Background thread to broadcast real-time updates to all connected clients."""
+    print('✓ Real-time broadcast loop started')
+    
+    while realtime_broadcast_active:
+        try:
+            if connected_clients > 0 and satellite and network:
+                # Get current time
+                now = datetime.now(timezone.utc)
+                t = ts.utc(now.year, now.month, now.day, now.hour, now.minute, now.second)
+                
+                # Compute visibility for all stations
+                visibility_data = {}
+                active_stations = []
+                
+                for station_name, observer in observers.items():
+                    az, el, rng, rng_rate = compute_azimuth_elevation_range(
+                        satellite_orbit, observer, t
+                    )
+                    visible = is_visible(el, 10.0)
+                    
+                    visibility_data[station_name] = {
+                        'is_visible': bool(visible),
+                        'elevation': round(float(el), 2),
+                        'azimuth': round(float(az), 2),
+                        'range_km': round(float(rng), 2),
+                        'range_rate_km_s': round(float(rng_rate), 3)
+                    }
+                    
+                    if visible:
+                        active_stations.append(station_name)
+                    
+                    # Log tracking data to database if enabled
+                    if db_logger:
+                        try:
+                            tracking_data = {
+                                'azimuth_deg': float(az),
+                                'elevation_deg': float(el),
+                                'range_km': float(rng),
+                                'range_rate_km_s': float(rng_rate),
+                                'is_visible': bool(visible)
+                            }
+                            db_logger.log_tracking(tracking_data, station_name, now.isoformat())
+                        except Exception as e:
+                            print(f'⚠️  Failed to log tracking data: {e}')
+                
+                # Get satellite position
+                geocentric = satellite_orbit.at(t)
+                subpoint = geocentric.subpoint()
+                
+                # Build status update
+                status_update = {
+                    'timestamp': now.isoformat(),
+                    'satellite': {
+                        'name': satellite.name,
+                        'battery_voltage': round(satellite.battery_voltage, 2),
+                        'temperature': round(satellite.temperature, 1),
+                        'mode': satellite.mode,
+                        'telemetry_count': satellite.telemetry_count,
+                        'position': {
+                            'latitude': round(subpoint.latitude.degrees, 4),
+                            'longitude': round(subpoint.longitude.degrees, 4),
+                            'altitude_km': round(subpoint.elevation.km, 2)
+                        }
+                    },
+                    'network': {
+                        'active_stations': active_stations,
+                        'total_stations': len(network.stations),
+                        'visibility': visibility_data
+                    }
+                }
+                
+                # Broadcast to all connected clients
+                socketio.emit('status_update', status_update, namespace='/')
+                
+            # Sleep for update interval (2 seconds for real-time feel)
+            time.sleep(2)
+            
+        except Exception as e:
+            print(f'⚠️  Error in broadcast loop: {e}')
+            time.sleep(5)  # Wait longer on error
+    
+    print('✓ Real-time broadcast loop stopped')
+
+
+# ============================================================
 # Application Entry Point
 # ============================================================
 
@@ -498,4 +684,4 @@ if __name__ == '__main__':
     
     print()
     
-    app.run(host='0.0.0.0', port=port, debug=debug_mode)
+    socketio.run(app, host='0.0.0.0', port=port, debug=debug_mode, allow_unsafe_werkzeug=True)

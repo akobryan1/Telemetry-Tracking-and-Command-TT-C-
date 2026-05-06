@@ -1,29 +1,109 @@
-// TT&C Dashboard JavaScript
+// TT&C Dashboard JavaScript (Phase 7: Real-Time WebSocket Updates)
 
-// Auto-refresh interval (milliseconds)
+// WebSocket connection
+let socket = null;
+let isConnected = false;
+
+// Auto-refresh interval (fallback for REST API if WebSocket fails)
 const REFRESH_INTERVAL = 5000;
 let refreshTimer = null;
 
 // Initialize dashboard on page load
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('TT&C Dashboard initialized');
+    console.log('TT&C Dashboard initialized (Phase 7: WebSocket Mode)');
+    
+    // Initialize WebSocket connection
+    initializeWebSocket();
     
     // Initial data load
-    updateStatus();
     loadPasses();
     updateCommandParams();
-    
-    // Start auto-refresh
-    startAutoRefresh();
 });
 
-// Start automatic refresh
+// Initialize WebSocket connection
+function initializeWebSocket() {
+    try {
+        // Connect to Socket.IO server
+        socket = io({
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionAttempts: 10
+        });
+        
+        // Connection established
+        socket.on('connect', function() {
+            console.log('✓ WebSocket connected');
+            isConnected = true;
+            updateConnectionStatus('Connected (Real-time)', 'connected');
+            
+            // Stop polling fallback if active
+            stopAutoRefresh();
+            
+            // Request initial status
+            socket.emit('request_status');
+        });
+        
+        // Connection failed
+        socket.on('connect_error', function(error) {
+            console.error('✗ WebSocket connection error:', error);
+            updateConnectionStatus('Connection Error - Using Polling', 'error');
+            
+            // Fallback to REST API polling
+            if (!refreshTimer) {
+                startAutoRefresh();
+            }
+        });
+        
+        // Disconnected
+        socket.on('disconnect', function(reason) {
+            console.log('✗ WebSocket disconnected:', reason);
+            isConnected = false;
+            updateConnectionStatus('Disconnected - Reconnecting...', 'disconnected');
+            
+            // Fallback to polling
+            startAutoRefresh();
+        });
+        
+        // Connection status message
+        socket.on('connection_status', function(data) {
+            console.log('Connection status:', data.message);
+        });
+        
+        // Real-time status updates
+        socket.on('status_update', function(data) {
+            updateStatusDisplay(data);
+        });
+        
+        // Error messages
+        socket.on('error', function(data) {
+            console.error('WebSocket error:', data.message);
+        });
+        
+    } catch (error) {
+        console.error('Failed to initialize WebSocket:', error);
+        updateConnectionStatus('WebSocket Failed - Using Polling', 'error');
+        startAutoRefresh();
+    }
+}
+
+// Update connection status display
+function updateConnectionStatus(message, status) {
+    const statusElement = document.getElementById('connection-status');
+    if (statusElement) {
+        statusElement.textContent = message;
+        statusElement.className = `status-${status}`;
+    }
+}
+
+// Start automatic refresh (fallback mode)
 function startAutoRefresh() {
+    if (refreshTimer) return; // Already running
+    
     refreshTimer = setInterval(() => {
         updateStatus();
     }, REFRESH_INTERVAL);
     
-    document.getElementById('refresh-status').textContent = 'Enabled';
+    console.log('Polling mode activated (5s interval)');
 }
 
 // Stop automatic refresh
@@ -31,11 +111,11 @@ function stopAutoRefresh() {
     if (refreshTimer) {
         clearInterval(refreshTimer);
         refreshTimer = null;
+        console.log('Polling mode deactivated');
     }
-    document.getElementById('refresh-status').textContent = 'Disabled';
 }
 
-// Update satellite and network status
+// Update satellite and network status (REST API fallback)
 async function updateStatus() {
     try {
         const response = await fetch('/api/status');
@@ -46,8 +126,17 @@ async function updateStatus() {
             return;
         }
         
-        // Update satellite info
-        document.getElementById('sat-name').textContent = data.satellite.name;
+        updateStatusDisplay(data);
+        
+    } catch (error) {
+        console.error('Failed to fetch status:', error);
+    }
+}
+
+// Update status display (used by both WebSocket and REST API)
+function updateStatusDisplay(data) {
+    // Update satellite info
+    document.getElementById('sat-name').textContent = data.satellite.name;
         document.getElementById('sat-battery').textContent = `${data.satellite.battery_voltage} V`;
         document.getElementById('sat-temp').textContent = `${data.satellite.temperature} °C`;
         document.getElementById('sat-mode').textContent = data.satellite.mode;
